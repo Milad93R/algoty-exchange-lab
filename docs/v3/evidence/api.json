@@ -1,0 +1,13 @@
+{
+  "checks": [
+    "flow validation and cross-user isolation",
+    "real Binance historical replay and per-node trace",
+    "Java scale-in cap enforced",
+    "25 percent partial exit and balanced ledger",
+    "protective exit closes entire position",
+    "editing active flow creates inactive version",
+    "actual AI provider generated composable multi-market plan"
+  ],
+  "replayBars": 278,
+  "aiModel": "openai/gpt-4.1-mini"
+}

@@ -1,0 +1,17 @@
+{
+  "restart": "Same account, ledger and open order survived Java/Go restart; canceled afterward",
+  "worker": {
+    "kind": "WAIT",
+    "message": "Entry conditions are not satisfied",
+    "evidence": {
+      "close": 79096.47,
+      "fastSMA": 79121.062,
+      "slowSMA": 79157.5585,
+      "rsi": 16.279069767447538,
+      "volumeRatio": 0.8626795455309904,
+      "barTime": 1788805980000,
+      "strategy": "BREAKOUT",
+      "breakoutLevel": 79211.99
+    }
+  }
+}

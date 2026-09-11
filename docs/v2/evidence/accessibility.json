@@ -1,0 +1,5 @@
+{
+  "no-preference": "moving",
+  "reduce": "static",
+  "modalKeyboard": "focus trap and Escape verified"
+}

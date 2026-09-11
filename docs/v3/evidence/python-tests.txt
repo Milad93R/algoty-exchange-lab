@@ -1,0 +1,21 @@
+test_actions_protection_partial (test_engine.EngineTest.test_actions_protection_partial) ... ok
+test_cross_confirm_sequence (test_engine.EngineTest.test_cross_confirm_sequence) ... ok
+test_indicators (test_engine.EngineTest.test_indicators) ... ok
+test_no_future (test_engine.EngineTest.test_no_future) ... ok
+test_persisted_trailing_peak (test_engine.EngineTest.test_persisted_trailing_peak) ... ok
+test_replay_timing_costs (test_engine.EngineTest.test_replay_timing_costs) ... ok
+test_temporal_budget (test_engine.EngineTest.test_temporal_budget) ... ok
+test_validation (test_engine.EngineTest.test_validation) ... ok
+test_warmup_and_schedule (test_engine.EngineTest.test_warmup_and_schedule) ... ok
+test_closed_bars (test_service.MissionTests.test_closed_bars) ... ok
+test_confirmation_and_volume (test_service.MissionTests.test_confirmation_and_volume) ... ok
+test_ma_and_rsi (test_service.MissionTests.test_ma_and_rsi) ... ok
+test_position_cost_and_exit (test_service.MissionTests.test_position_cost_and_exit) ... ok
+test_runner_dispatch_and_fail_closed_review (test_service.MissionTests.test_runner_dispatch_and_fail_closed_review) ... ok
+test_runner_skips_stale_feed (test_service.MissionTests.test_runner_skips_stale_feed) ... ok
+test_schema (test_service.MissionTests.test_schema) ... ok
+
+----------------------------------------------------------------------
+Ran 16 tests in 0.180s
+
+OK

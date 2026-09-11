@@ -1,0 +1,9 @@
+{
+  "unsupportedBrief": "Explicit questions returned; activation rejected",
+  "providerBudget": "Daily call count survives worker restart",
+  "questions": [
+    "Requested symbol DOGE is unsupported. Supported symbols are BTCUSDT, ETHUSDT, SOLUSDT only.",
+    "Requested strategy involves shorting and leverage which are unsupported.",
+    "Requested use of breaking news and sentiment analysis is unsupported."
+  ]
+}

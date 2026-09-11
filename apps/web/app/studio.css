@@ -1,0 +1,458 @@
+/* Mission Studio: instrument panel, warm paper, ink and signal orange. */
+.product .studio {
+  border: 1px solid #d6d6cc;
+  margin: 28px 0;
+  background: #f6f5ef;
+  overflow: hidden;
+}
+.studio-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32px;
+  gap: 24px;
+}
+.product .studio h2 {
+  font-size: clamp(26px, 3vw, 42px);
+  letter-spacing: -1.8px;
+  line-height: 1.12;
+  margin: 12px 0;
+}
+.studio h2 span {
+  color: #ea542c;
+}
+.studio-head p,
+.replay-desk p,
+.trace-panel p {
+  font-size: 13px;
+  line-height: 1.65;
+  color: #656a61;
+}
+.studio-head > div:last-child {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.studio-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-block: 1px solid #d6d6cc;
+  padding: 0 24px;
+  flex-wrap: wrap;
+}
+.studio-toolbar button {
+  padding: 18px 12px;
+  color: #75766e;
+  border-bottom: 2px solid transparent;
+}
+.studio-toolbar button.active {
+  color: #20261e;
+  border-color: #ec562d;
+}
+.flow-legend {
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.flow-legend i {
+  width: 6px;
+  height: 6px;
+  background: #487657;
+  margin-left: 8px;
+}
+.flow-legend i:nth-of-type(2) {
+  background: #dc793c;
+}
+.flow-legend i:nth-of-type(3) {
+  background: #a6a79e;
+}
+.studio-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 245px;
+}
+.flow-scroll {
+  overflow: auto;
+  background-color: #eeeee6;
+  background-image: radial-gradient(#cfd1c6 0.7px, transparent 0.7px);
+  background-size: 16px 16px;
+  max-height: 620px;
+}
+.flow-map {
+  position: relative;
+}
+.flow-map svg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.flow-map path {
+  fill: none;
+  stroke: #b8bcb0;
+  stroke-width: 1.4;
+}
+.flow-map path.pass {
+  stroke: #4e8060;
+  stroke-dasharray: 5 4;
+  animation: flow-travel 1.8s linear infinite;
+}
+.product .flow-node {
+  position: absolute;
+  width: 210px;
+  min-height: 72px;
+  padding: 12px 14px;
+  text-align: left;
+  border: 1px solid #bfc3b6;
+  background: #faf9f2;
+  color: #232920;
+  box-shadow: 3px 3px 0 #dfe2d6;
+  animation: node-enter 0.28s both;
+  transition:
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+.flow-node span {
+  display: flex;
+  justify-content: space-between;
+  font: 9px monospace;
+  letter-spacing: 0.12em;
+  color: #74796d;
+  margin-bottom: 8px;
+}
+.flow-node strong {
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 500;
+  display: block;
+}
+.product .flow-node.pass {
+  border-left: 4px solid #4c7e57;
+}
+.product .flow-node.fail {
+  border-left: 4px solid #d87539;
+}
+.product .flow-node.waiting {
+  border-left: 4px solid #a5a59d;
+}
+.product .flow-node.selected {
+  outline: 2px solid #eb592f;
+  outline-offset: 3px;
+  box-shadow: 5px 5px 0 #d8dbce;
+}
+.trace-panel {
+  padding: 25px 20px;
+  border-left: 1px solid #d0d3c7;
+  background: #faf9f4;
+}
+.product .trace-panel h3 {
+  font-size: 20px;
+  letter-spacing: -0.7px;
+  line-height: 1.35;
+  margin: 16px 0;
+}
+.trace-panel dl > div {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  border-bottom: 1px solid #e1e2d9;
+  padding: 9px 0;
+  font-size: 11px;
+}
+.trace-panel dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.trace-panel small {
+  font-size: 10px;
+  color: #777c70;
+}
+.trace-status {
+  font: 11px monospace;
+  text-transform: uppercase;
+  padding: 6px 0;
+  display: block;
+}
+.trace-status.pass {
+  color: #3c7b4c;
+}
+.trace-status.fail {
+  color: #bd6633;
+}
+.flow-receipt {
+  margin-top: 22px;
+  border-top: 3px solid #e85830;
+  padding-top: 15px;
+  font-size: 12px;
+}
+.replay-desk {
+  border-top: 1px solid #d0d3c7;
+  padding: 26px 32px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.replay-desk > div {
+  flex: 1;
+}
+.product .replay-desk h3 {
+  font-size: 26px;
+  letter-spacing: -1px;
+  margin: 8px 0;
+}
+.replay-desk label {
+  font-size: 11px;
+  max-width: 140px;
+}
+.replay-result {
+  padding: 0 28px 24px;
+}
+.replay-scrub {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.replay-scrub input {
+  flex: 1;
+  accent-color: #ed572d;
+}
+.replay-scrub span {
+  font: 11px monospace;
+  white-space: nowrap;
+}
+.flow-editor {
+  margin: 25px 0;
+  border: 1px solid #cbd0c3;
+}
+.flow-editor .flow-scroll {
+  max-height: 340px;
+}
+.node-inspector {
+  padding: 20px;
+  background: #eeeee6;
+}
+.node-inspector h3 {
+  font-size: 20px;
+  margin: 12px 0;
+}
+.node-inspector .operand {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0 20px;
+}
+.node-inspector label,
+.flow-risk label {
+  font-size: 11px;
+  display: block;
+}
+.node-inspector .overline {
+  margin-top: 12px;
+  display: block;
+}
+.child-rule {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #d2d6ca;
+  padding: 10px 0;
+  font-size: 12px;
+  gap: 10px;
+}
+.child-rule > button:first-child {
+  text-align: left;
+}
+.flow-risk {
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.flow-risk h3 {
+  grid-column: 1/-1;
+  margin: 0 0 8px;
+}
+.studio-import {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.studio-import button,
+.studio-import label {
+  padding: 12px 16px;
+  border: 1px solid #aeb4a4;
+  font-size: 12px;
+  cursor: pointer;
+}
+.studio-import input {
+  display: none;
+}
+.studio-import label:focus-within {
+  outline: 2px solid #e85830;
+}
+@keyframes flow-travel {
+  to {
+    stroke-dashoffset: -18;
+  }
+}
+@keyframes node-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 900px) {
+  .studio-body {
+    grid-template-columns: 1fr;
+  }
+  .trace-panel {
+    border-left: 0;
+    border-top: 1px solid #d0d3c7;
+  }
+  .studio-head,
+  .replay-desk {
+    flex-wrap: wrap;
+    padding: 22px;
+  }
+  .studio-toolbar {
+    padding: 0 10px;
+  }
+  .flow-legend {
+    padding-bottom: 12px;
+  }
+  .replay-desk > div {
+    flex-basis: 100%;
+  }
+}
+@media (max-width: 480px) {
+  .studio-head > div:last-child {
+    width: 100%;
+  }
+  .studio-head h2 {
+    font-size: 30px;
+  }
+  .replay-result {
+    padding: 0 12px 18px;
+  }
+  .flow-risk {
+    grid-template-columns: 1fr;
+  }
+  .flow-scroll {
+    max-height: 440px;
+  }
+  .replay-scrub {
+    gap: 8px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flow-map path.pass,
+  .product .flow-node {
+    animation: none;
+    transition: none;
+  }
+}
+
+.execution-rails {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid #d0d3c7;
+  background: #e8eadf;
+}
+.execution-rails > div {
+  padding: 22px;
+  border-right: 1px solid #ccd1c3;
+}
+.execution-rails strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  margin: 10px 0;
+}
+.execution-rails small {
+  display: block;
+  line-height: 1.65;
+  font-size: 10px;
+  color: #646d5a;
+}
+.studio-import label {
+  position: relative;
+}
+.studio-import input {
+  display: block;
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+@media (max-width: 650px) {
+  .execution-rails {
+    grid-template-columns: 1fr;
+  }
+  .execution-rails > div {
+    border-bottom: 1px solid #ccd1c3;
+  }
+}
+
+/* Port-based canvas: dashboard paper, ink, olive and signal orange. */
+.scanner-flow-canvas {
+  --flow-paper: #f4f3ed;
+  --flow-card: #faf9f4;
+  min-width: 0;
+  border: 1px solid var(--line, #dbddd3);
+  background: var(--flow-paper);
+  border-radius: 3px;
+  overflow: hidden;
+  color: var(--ink, #202820);
+}
+.scanner-flow-canvas-toolbar {
+  height: 46px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px; border-bottom: 1px solid var(--line); background: #f7f6f1;
+}
+.scanner-flow-canvas-toolbar > span {font-size: 9px; letter-spacing: 1.6px; display: flex; align-items: center; gap: 9px}
+.scanner-flow-canvas-toolbar i {width: 6px; height: 6px; background: var(--accent); border-radius: 50%}
+.product .scanner-flow-canvas-toolbar button {border: 0; background: none; font-size: 11px; padding: 8px; color: var(--ink)}
+.product .scanner-flow-canvas-toolbar button:hover {color: var(--accent)}
+.scanner-flow-canvas-surface {height: 550px; width: 100%}
+.scanner-flow-canvas-caption {display: flex; justify-content: space-between; gap: 15px; border-top: 1px solid var(--line); padding: 11px 14px; font-size: 9px; color: var(--muted)}
+.mission-flow-node {
+  width: 220px; border: 1px solid #c7c9bd; border-radius: 3px;
+  background: var(--flow-card); box-shadow: 0 3px 9px #2028200d;
+  font-family: Arial, sans-serif; position: relative;
+}
+.mission-flow-node-head {display: flex; align-items: center; gap: 9px; padding: 12px; border-bottom: 1px solid #d5d8ca; background: #e7e9de; border-radius: 2px 2px 0 0}
+.mission-flow-node-head strong {font-weight: 600; font-size: 12px; line-height: 1.3}
+.mission-flow-node-icon {font-size: 19px; line-height: 1}
+.mission-flow-node-status {margin-left: auto; font-size: 13px}
+.mission-flow-node-detail {padding: 12px; font-size: 11px; line-height: 1.6; min-height: 42px}
+.mission-flow-node-footer {display: flex; justify-content: space-between; padding: 0 12px 9px; font-size: 7px; letter-spacing: 1px; color: var(--muted)}
+.mission-flow-node.condition .mission-flow-node-head {background: #eee8dd; border-color: #ded7ca}
+.mission-flow-node.logic .mission-flow-node-head {background: #343e32; border-color: #343e32; color: #f7f6f1}
+.mission-flow-node.output .mission-flow-node-head {background: #f5e1d6; border-color: #e9c8b9}
+.mission-flow-node.output .mission-flow-node-icon {color: #b74224}
+.mission-flow-node.value .mission-flow-node-head {background: #eeede5; border-color: var(--line)}
+.mission-flow-node.chosen {outline: 2px solid var(--accent); outline-offset: 3px}
+.mission-flow-node.pass {border-color: #487657}
+.mission-flow-node.fail {border-color: #bd6947}
+.mission-flow-node .react-flow__handle {width: 9px; height: 9px; border: 2px solid var(--flow-card); background: #69735f; min-width: 9px; min-height: 9px}
+.scanner-flow-canvas .react-flow__controls-button {background: var(--flow-card); color: var(--ink); border: 0; border-bottom: 1px solid var(--line); width: 28px; height: 28px; padding: 6px}
+.scanner-flow-canvas .react-flow__controls-button:hover {background: #eee8dd}
+.scanner-flow-canvas .react-flow__minimap {background: #f7f6f1; border: 1px solid var(--line); border-radius: 3px}
+.scanner-flow-canvas .react-flow__minimap-mask {fill: #2028200c}
+.scanner-flow-canvas .react-flow__node:focus-visible {outline: 2px solid var(--accent); outline-offset: 5px}
+.flow-editor, .node-inspector {min-width: 0}
+@media(max-width:650px) {
+  .scanner-flow-canvas-surface {height: 450px}
+  .scanner-flow-canvas .react-flow__minimap {display: none}
+  .scanner-flow-canvas-caption {font-size: 8px; line-height: 1.6; flex-direction: column; gap: 3px}
+  .scanner-flow-canvas-toolbar {padding: 0 10px}
+  .scanner-flow-canvas-toolbar button {font-size: 10px!important}
+}
+@media(prefers-reduced-motion:reduce) {.scanner-flow-canvas .react-flow__edge.animated path {animation: none}}

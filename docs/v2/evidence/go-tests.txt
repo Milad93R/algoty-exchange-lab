@@ -1,0 +1,12 @@
+=== RUN   TestDepthCapacityDurability
+--- PASS: TestDepthCapacityDurability (0.01s)
+=== RUN   TestRestingStrictTradeThrough
+--- PASS: TestRestingStrictTradeThrough (0.00s)
+=== RUN   TestStaleCancelAndPersistenceFailure
+--- PASS: TestStaleCancelAndPersistenceFailure (0.00s)
+=== RUN   TestConcurrentLiquidity
+--- PASS: TestConcurrentLiquidity (0.00s)
+=== RUN   TestBinanceCaseSensitiveCandleFields
+--- PASS: TestBinanceCaseSensitiveCandleFields (0.00s)
+PASS
+ok  	algoty/market	1.054s

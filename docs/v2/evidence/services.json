@@ -1,0 +1,22 @@
+[
+  {
+    "name": "exchange-lab-core",
+    "status": "online",
+    "memoryMB": 246.3
+  },
+  {
+    "name": "exchange-lab-web",
+    "status": "online",
+    "memoryMB": 96.4
+  },
+  {
+    "name": "exchange-live-market",
+    "status": "online",
+    "memoryMB": 14.2
+  },
+  {
+    "name": "exchange-mission-worker",
+    "status": "online",
+    "memoryMB": 24.8
+  }
+]

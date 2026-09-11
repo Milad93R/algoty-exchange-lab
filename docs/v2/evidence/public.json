@@ -1,0 +1,11 @@
+{
+  "domain": "https://algoty.com",
+  "landing": true,
+  "artworkReady": true,
+  "liveSSE": true,
+  "binanceBookLevels": 20,
+  "guestSession": true,
+  "secureHttpOnlyCookie": true,
+  "mobileMissions": true,
+  "pageErrors": []
+}

@@ -1,0 +1,7 @@
+[
+  "concurrent reservations cannot overspend",
+  "all account totals independently match their ledger entries",
+  "login attempt throttling",
+  "worker endpoints not exposed through web proxy",
+  "cross-origin POST rejection"
+]

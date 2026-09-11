@@ -1,0 +1,19 @@
+{
+  "autonomousWorker": true,
+  "closedBar": 1788841079999,
+  "trace": {
+    "entry": {
+      "status": "pass",
+      "left": 78845.3,
+      "right": 0
+    },
+    "exit": {
+      "status": "fail",
+      "left": 78845.3,
+      "right": 0
+    }
+  },
+  "fills": 1,
+  "ledgerBalanced": true,
+  "source": "Live Binance book; QA condition close > 0 intentionally triggers a virtual entry, not a profitable strategy claim"
+}

@@ -1,0 +1,23 @@
+{
+  "https": true,
+  "views": [
+    {
+      "width": 1440,
+      "overflow": false,
+      "graphOverflow": false
+    },
+    {
+      "width": 768,
+      "overflow": false,
+      "graphOverflow": true
+    },
+    {
+      "width": 390,
+      "overflow": false,
+      "graphOverflow": false
+    }
+  ],
+  "errors": [],
+  "reducedMotion": "none",
+  "internalRoute": 404
+}

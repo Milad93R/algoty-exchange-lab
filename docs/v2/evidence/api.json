@@ -1,0 +1,13 @@
+{
+  "checks": [
+    "guest portfolio and double-entry funding",
+    "cross-user portfolio isolation",
+    "market fill, fees, positions, idempotency and fractional-unit rejection",
+    "limit cancellation, no overspend/shorting and cancellation isolation",
+    "guest upgrade, cross-browser login, one-time recovery rotation and old-session revocation",
+    "real LLM draft, explicit activation, typed rule validation, proposal-only control, lifecycle and versioning",
+    "real LLM branching, equal-capital paired start, read-only published comparison and privacy boundaries"
+  ],
+  "passed": 7,
+  "timestamp": 1788805463.8674212
+}

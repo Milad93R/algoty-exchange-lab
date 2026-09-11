@@ -1,0 +1,28 @@
+[
+  {
+    "name": "binance",
+    "status": 200,
+    "ms": 841,
+    "hasBook": true
+  },
+  {
+    "name": "kraken",
+    "status": 200,
+    "ms": 208,
+    "hasBook": true
+  },
+  {
+    "name": "coinbase",
+    "status": 200,
+    "ms": 272,
+    "hasBook": true
+  },
+  {
+    "ws": "binance",
+    "streams": [
+      "btcusdt@depth20@100ms",
+      "btcusdt@aggTrade",
+      "btcusdt@kline_1m"
+    ]
+  }
+]

@@ -1,0 +1,65 @@
+{
+  "integration": {
+    "passed": [
+      "duplicate request: single trade and single debit",
+      "maker-price execution and reservation release",
+      "idempotent cancellation",
+      "overspend rejected",
+      "concurrent reservations protected",
+      "durable pending order across matcher outage",
+      "session isolation",
+      "ledger reconstruction equals balances"
+    ]
+  },
+  "ack-recovery": {
+    "passed": "persisted matching response before Java settlement; restart both; exactly one debit",
+    "trade_count": 1
+  },
+  "partial-fill": {
+    "passed": "partial fill followed by cancel releases only the unfilled reservation"
+  },
+  "benchmark": {
+    "orders": 80,
+    "concurrency": 1,
+    "api_acceptance_ms": {
+      "p50": 43.22174750268459,
+      "p95": 69.46733500808477,
+      "max": 127.93053593486547
+    },
+    "all_settled_seconds": 4.415074318996631,
+    "settled_orders_per_second": 18.119740285182967,
+    "correctness": {
+      "trades": 80,
+      "balanced": true
+    },
+    "environment": "shared yusam host; loopback; durable full-snapshot matcher; Java global transaction lock",
+    "scope": "small smoke benchmark, not capacity or production latency claim"
+  },
+  "browser": {
+    "filled": true,
+    "ledger": true,
+    "research": true,
+    "mobileOverflow": false,
+    "errors": []
+  },
+  "browser-public": {
+    "filled": true,
+    "ledger": true,
+    "research": true,
+    "mobileOverflow": false,
+    "errors": []
+  },
+  "research_tests": {
+    "passed": 3,
+    "checks": [
+      "no future-data effect on past curve",
+      "constant series no signal",
+      "fees reduce result"
+    ]
+  },
+  "idle_memory_snapshot_bytes": {
+    "exchange-lab-matching": 12304384,
+    "exchange-lab-core": 230653952,
+    "exchange-lab-web": 93392896
+  }
+}

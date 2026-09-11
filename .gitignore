@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.example
+node_modules/
+.next/
+target/
+__pycache__/
+.venv/
+*.log
+
+.runtime/
+.gradle/
+build/
+services/matching-go/matching
+
+services/market-go/market

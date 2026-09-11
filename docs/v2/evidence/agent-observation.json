@@ -1,0 +1,41 @@
+{
+  "scope": "QA-owned virtual account; observed future live candles, not a profitability evaluation",
+  "decisions": [
+    {
+      "id": 122,
+      "kind": "WAIT",
+      "message": "Entry conditions are not satisfied",
+      "evidence": "{\"close\":2488.51,\"fastSMA\":2488.438,\"slowSMA\":2488.7475,\"rsi\":47.722772277229566,\"volumeRatio\":0.795201165233845,\"barTime\":1788806700000,\"strategy\":\"RSI_REVERSION\"}",
+      "created_at": "2026-09-07T18:46:02.322+00:00"
+    },
+    {
+      "id": 117,
+      "kind": "WAIT",
+      "message": "Entry conditions are not satisfied",
+      "evidence": "{\"close\":2489.16,\"fastSMA\":2488.23,\"slowSMA\":2488.916,\"rsi\":51.416579223504726,\"volumeRatio\":0.7159401738207783,\"barTime\":1788806640000,\"strategy\":\"RSI_REVERSION\"}",
+      "created_at": "2026-09-07T18:45:04.864+00:00"
+    },
+    {
+      "id": 112,
+      "kind": "WAIT",
+      "message": "Entry conditions are not satisfied",
+      "evidence": "{\"close\":2488.13,\"fastSMA\":2487.984,\"slowSMA\":2489.0435,\"rsi\":38.43098311817282,\"volumeRatio\":0.7189230885861865,\"barTime\":1788806580000,\"strategy\":\"RSI_REVERSION\"}",
+      "created_at": "2026-09-07T18:44:07.311+00:00"
+    },
+    {
+      "id": 107,
+      "kind": "WAIT",
+      "message": "Entry conditions are not satisfied",
+      "evidence": "{\"close\":2489.05,\"fastSMA\":2487.8779999999997,\"slowSMA\":2489.2435,\"rsi\":45.454545454547166,\"volumeRatio\":0.6432356910153785,\"barTime\":1788806520000,\"strategy\":\"RSI_REVERSION\"}",
+      "created_at": "2026-09-07T18:43:01.611+00:00"
+    },
+    {
+      "id": 102,
+      "kind": "WAIT",
+      "message": "Entry conditions are not satisfied",
+      "evidence": "{\"close\":2487.34,\"fastSMA\":2487.68,\"slowSMA\":2489.484,\"rsi\":31.75914994096952,\"volumeRatio\":0.1874936051191959,\"barTime\":1788806460000,\"strategy\":\"RSI_REVERSION\"}",
+      "created_at": "2026-09-07T18:42:03.881+00:00"
+    }
+  ],
+  "fills": []
+}

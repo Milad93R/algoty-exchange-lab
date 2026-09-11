@@ -1,0 +1,23 @@
+{
+  "processes": [
+    {
+      "name": "exchange-lab-core",
+      "status": "online"
+    },
+    {
+      "name": "exchange-lab-web",
+      "status": "online"
+    },
+    {
+      "name": "exchange-live-market",
+      "status": "online"
+    },
+    {
+      "name": "exchange-mission-worker",
+      "status": "online"
+    }
+  ],
+  "marketFresh": true,
+  "bookLevels": 20,
+  "closedCandles": 299
+}

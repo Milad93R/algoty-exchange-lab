@@ -1,0 +1,236 @@
+{
+  "rows": [
+    {
+      "route": "/",
+      "width": 1440,
+      "marks": 4,
+      "styles": [
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "27px",
+          "-1.6px"
+        ],
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "27px",
+          "-1.6px"
+        ],
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "27px",
+          "-1.6px"
+        ],
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "27px",
+          "-1.6px"
+        ]
+      ],
+      "overflow": false
+    },
+    {
+      "coinRenderer": "fallback"
+    },
+    {
+      "route": "/trade",
+      "width": 1440,
+      "marks": 2,
+      "styles": [
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "27px",
+          "-1.6px"
+        ],
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "27px",
+          "-1.6px"
+        ]
+      ],
+      "overflow": false
+    },
+    {
+      "route": "/agents",
+      "width": 1440,
+      "marks": 2,
+      "styles": [
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "27px",
+          "-1.6px"
+        ],
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "27px",
+          "-1.6px"
+        ]
+      ],
+      "overflow": false
+    },
+    {
+      "route": "/markets",
+      "width": 1440,
+      "marks": 2,
+      "styles": [
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "27px",
+          "-1.6px"
+        ],
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "27px",
+          "-1.6px"
+        ]
+      ],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "width": 1440,
+      "marks": 3,
+      "styles": [
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "27px",
+          "-1.6px"
+        ],
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "27px",
+          "-1.6px"
+        ]
+      ],
+      "overflow": false
+    },
+    {
+      "route": "/",
+      "width": 390,
+      "marks": 4,
+      "styles": [
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "24px",
+          "-1.6px"
+        ],
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "24px",
+          "-1.6px"
+        ],
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "24px",
+          "-1.6px"
+        ],
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "24px",
+          "-1.6px"
+        ]
+      ],
+      "overflow": false
+    },
+    {
+      "route": "/trade",
+      "width": 390,
+      "marks": 2,
+      "styles": [
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "24px",
+          "-1.6px"
+        ],
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "24px",
+          "-1.6px"
+        ]
+      ],
+      "overflow": false
+    },
+    {
+      "route": "/agents",
+      "width": 390,
+      "marks": 2,
+      "styles": [
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "24px",
+          "-1.6px"
+        ],
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "24px",
+          "-1.6px"
+        ]
+      ],
+      "overflow": false
+    },
+    {
+      "route": "/markets",
+      "width": 390,
+      "marks": 2,
+      "styles": [
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "24px",
+          "-1.6px"
+        ],
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "24px",
+          "-1.6px"
+        ]
+      ],
+      "overflow": false
+    },
+    {
+      "route": "/account",
+      "width": 390,
+      "marks": 3,
+      "styles": [
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "24px",
+          "-1.6px"
+        ],
+        [
+          "DM, Arial, sans-serif",
+          "700",
+          "24px",
+          "-1.6px"
+        ]
+      ],
+      "overflow": false
+    }
+  ],
+  "errors": [],
+  "cache": [
+    "algoty-brand-v3"
+  ],
+  "faviconMatches": true
+}

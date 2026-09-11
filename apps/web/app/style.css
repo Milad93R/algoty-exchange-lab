@@ -1,0 +1,545 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: #0b111b;
+  color: #dce4ef;
+  font:
+    14px Arial,
+    sans-serif;
+}
+button,
+input {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
+main {
+  max-width: 1600px;
+  margin: auto;
+  padding: 0 36px;
+}
+header {
+  height: 82px;
+  border-bottom: 1px solid #253043;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.brand {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-size: 35px;
+  font-weight: bold;
+  color: #54d5aa;
+}
+.brand > span {
+  font-size: 19px;
+  color: #edf2f8;
+  letter-spacing: 3px;
+}
+.brand small {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #8293a9;
+  margin-top: 6px;
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-size: 12px;
+}
+.badge {
+  border: 1px solid #3f4b5b;
+  padding: 7px 10px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #c1cddd;
+}
+.online,
+.bid {
+  color: #54d5aa;
+}
+.offline {
+  color: #e7b264;
+}
+.red,
+.ask {
+  color: #ef8d90;
+}
+.intro {
+  padding: 33px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #93a5bb;
+}
+h1 {
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.7px;
+  margin: 12px 0;
+}
+.intro p {
+  color: #94a2b6;
+  font-size: 13px;
+}
+.stack {
+  font: 11px monospace;
+  color: #dce4ef;
+  padding-bottom: 14px;
+}
+.stack span {
+  color: #8293a9;
+}
+.market {
+  display: flex;
+  align-items: center;
+  gap: 45px;
+  padding: 22px 24px;
+  background: #121c2a;
+  border: 1px solid #273348;
+}
+.market > div {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.market span,
+.market small {
+  color: #8f9fb5;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+}
+.market strong {
+  font-size: 24px;
+  margin-right: auto;
+}
+.terminal {
+  display: grid;
+  grid-template-columns: minmax(350px, 1fr) 240px 300px;
+  border: 1px solid #273348;
+  border-top: 0;
+}
+.terminal article + article {
+  border-left: 1px solid #273348;
+}
+.panel-title {
+  height: 48px;
+  padding: 17px 19px;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+}
+.panel-title span {
+  font-size: 10px;
+  font-weight: normal;
+  letter-spacing: 0;
+  color: #7f90a8;
+}
+.chart-area {
+  height: 230px;
+  padding: 10px 20px;
+}
+.chart-area svg {
+  height: 100%;
+  width: 100%;
+}
+.empty {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  border: 1px dashed #2b3a50;
+  text-align: center;
+  padding: 20px;
+}
+.empty span {
+  font-size: 11px;
+  color: #a9bacf;
+  letter-spacing: 1px;
+}
+.empty p {
+  font-size: 12px;
+}
+.empty small {
+  font-size: 10px;
+  color: #7f90a8;
+}
+.chart-foot {
+  padding: 10px 20px 18px;
+  font-size: 10px;
+  color: #94a2b6;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #253043;
+}
+.book-label,
+.book-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 18px;
+}
+.book-label {
+  font-size: 10px;
+  color: #8497ae;
+}
+.book-row {
+  border: 0;
+  background: transparent;
+  font: 12px monospace;
+}
+.book-row:hover {
+  background: #1a2737;
+}
+.spread {
+  border-top: 1px solid #263244;
+  border-bottom: 1px solid #263244;
+  margin: 8px 0;
+  padding: 12px 18px;
+  color: #8799ae;
+  font-size: 11px;
+  display: flex;
+  justify-content: space-between;
+}
+.spread b {
+  color: #dce4ef;
+}
+.book-note {
+  font-size: 10px;
+  line-height: 1.7;
+  color: #8293a9;
+  padding: 12px 18px;
+}
+.ticket {
+  padding-bottom: 20px;
+}
+.ticket form {
+  padding: 0 20px;
+}
+.side {
+  display: flex;
+  margin: 0 20px 20px;
+  border: 1px solid #354156;
+}
+.side button {
+  width: 50%;
+  padding: 10px;
+  border: 0;
+  background: none;
+  color: #a0aec0;
+}
+.side .buy {
+  background: #164436;
+  color: #70e3ba;
+}
+.side .sell {
+  background: #4b262b;
+  color: #ffb0b3;
+}
+label {
+  display: block;
+  font-size: 11px;
+  color: #97a7bd;
+  margin: 16px 0;
+}
+label span {
+  float: right;
+}
+input {
+  display: block;
+  width: 100%;
+  background: #101926;
+  border: 1px solid #36435a;
+  color: #e6edf6;
+  padding: 12px;
+  margin-top: 9px;
+  outline: none;
+  font-family: monospace;
+}
+input:focus {
+  border-color: #54d5aa;
+}
+.total {
+  font-size: 11px;
+  display: flex;
+  justify-content: space-between;
+  margin: 22px 0;
+}
+.submit {
+  width: 100%;
+  padding: 13px;
+  border: 0;
+  font-weight: bold;
+}
+.submit.buy {
+  background: #54d5aa;
+  color: #0c291f;
+}
+.submit.sell {
+  background: #ef8d90;
+  color: #361317;
+}
+.submit:disabled {
+  opacity: 0.4;
+  cursor: wait;
+}
+.flow {
+  margin: 24px 20px 0;
+  border-top: 1px solid #263244;
+  padding-top: 12px;
+  color: #54d5aa;
+  font: 11px monospace;
+}
+.flow div {
+  margin: 10px 0;
+}
+.flow span {
+  margin-left: 12px;
+  color: #899bb1;
+}
+.records {
+  margin-top: 24px;
+  border: 1px solid #273348;
+  min-height: 215px;
+}
+.records nav {
+  display: flex;
+  border-bottom: 1px solid #273348;
+  padding: 0 18px;
+  gap: 22px;
+}
+.records nav button {
+  padding: 16px 0;
+  color: #8293a9;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  font-size: 12px;
+}
+.records nav .active {
+  border-bottom-color: #54d5aa;
+  color: #e4edf6;
+}
+.records nav span {
+  margin-left: auto;
+  align-self: center;
+  color: #8293a9;
+  font-size: 11px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  text-align: left;
+}
+th {
+  font-size: 10px;
+  color: #8293a9;
+  font-weight: normal;
+  padding: 12px 18px;
+  background: #101925;
+}
+td {
+  padding: 11px 18px;
+  border-top: 1px solid #1d293a;
+  font-family: monospace;
+}
+.cancel {
+  background: none;
+  border: 1px solid #3a4a61;
+  color: #a8bbd1;
+  font-size: 10px;
+  padding: 4px 8px;
+}
+.placeholder {
+  color: #8394aa;
+  padding: 24px;
+  font-size: 12px;
+}
+.error {
+  color: #f5a8a9;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.research {
+  padding: 20px 24px;
+}
+.research h2 {
+  font-size: 16px;
+  font-weight: normal;
+}
+.research p,
+.research small {
+  color: #92a4ba;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.research-stats {
+  display: flex;
+  gap: 55px;
+  margin: 22px 0;
+  color: #92a4ba;
+  font-size: 11px;
+}
+.research-stats b {
+  display: block;
+  color: #e4edf6;
+  margin-top: 8px;
+  font-size: 21px;
+}
+footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #7e91aa;
+  padding: 24px 0;
+}
+footer b {
+  font-weight: normal;
+  margin-left: 10px;
+}
+.scroll {
+  overflow: auto;
+}
+@media (max-width: 1100px) {
+  .stack {
+    display: none;
+  }
+  .terminal {
+    grid-template-columns: 1fr 240px;
+  }
+  .ticket {
+    grid-column: 1/-1;
+    border-top: 1px solid #273348;
+  }
+  .ticket form {
+    max-width: 500px;
+  }
+  .market {
+    gap: 20px;
+  }
+  .flow {
+    display: none;
+  }
+}
+@media (max-width: 650px) {
+  main {
+    padding: 0 12px;
+  }
+  .intro {
+    padding: 20px 0;
+  }
+  h1 {
+    font-size: 23px;
+  }
+  .market {
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .market strong {
+    font-size: 20px;
+  }
+  .terminal {
+    grid-template-columns: 1fr;
+  }
+  .terminal article + article {
+    border-left: 0;
+    border-top: 1px solid #273348;
+  }
+  .chart-foot {
+    flex-direction: column;
+  }
+  .header-right {
+    gap: 8px;
+  }
+  .badge {
+    font-size: 8px;
+  }
+  .orderbook {
+    max-height: 390px;
+    overflow: auto;
+  }
+  .research-stats {
+    gap: 20px;
+  }
+  footer {
+    gap: 20px;
+    line-height: 1.6;
+  }
+  .panel-title span {
+    font-size: 9px;
+  }
+}
+.replay-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.replay-controls button {
+  background: #152e28;
+  color: #8de2c3;
+  border: 1px solid #375548;
+  padding: 9px 12px;
+  white-space: nowrap;
+}
+.replay-controls input {
+  max-width: 450px;
+  padding: 0;
+}
+.replay-controls span {
+  font: 11px monospace;
+  color: #9badc2;
+}
+.equity-chart {
+  height: 150px;
+  width: 100%;
+  background: #101925;
+  border: 1px solid #263348;
+  margin: 16px 0;
+}
+.ai-review {
+  border-top: 1px solid #263348;
+  padding-top: 15px;
+}
+.ai-review h3 {
+  font-size: 13px;
+  font-weight: normal;
+}
+.ai-review h3 small {
+  margin-left: 15px;
+}
+.ai-review code {
+  font-size: 10px;
+  color: #79c5ae;
+  overflow-wrap: anywhere;
+}
+.ai-review > div {
+  margin: 18px 0;
+}
+.digest {
+  font-size: 10px !important;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 650px) {
+  .replay-controls {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}
+/* The exchange shares the product identity, while keeping a focused dark workspace. */
+.exchange-app{--brand-accent:#ff7950;font-family:DM,Arial,sans-serif}.exchange-app .brand{color:var(--brand-accent)}.exchange-app .trade-mark{color:inherit;text-decoration:none;font-size:35px;font-style:italic;letter-spacing:-8px;margin-right:12px}.exchange-app .back-home{color:#a9b5bf;text-decoration:none;font-size:12px;border-bottom:1px solid #52605e;padding-bottom:8px}.exchange-app .submit.buy{background:#ff7950;color:#211d17}.exchange-app .side .buy{background:#4b332a;color:#ffb39a}.exchange-app .intro h1{font-size:40px;letter-spacing:-2px}.exchange-app .brand small{letter-spacing:2px}.exchange-app .flow{color:#ff7950}.exchange-app .records nav .active{border-bottom-color:#ff7950}

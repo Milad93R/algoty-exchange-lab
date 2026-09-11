@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "live chart, market order, fill and evidence modal",
+    "limit order and cancellation",
+    "guest registration preserves session and shows recovery code",
+    "AI brief to editable plan, activation and pause",
+    "instruction preview creates version; branch, paired start and publish",
+    "comparison works without login",
+    "390px mobile layouts without horizontal overflow"
+  ],
+  "errors": []
+}
