@@ -36,6 +36,29 @@ const fields = [
   ["durationHours", "Mission duration · hours", 1, 168, 1],
 ];
 function Stats({ m }) {
+  if (!m.curve?.length && !(m.portfolio?.equity > 0))
+    return (
+      <div className="stat-strip stat-strip-pending">
+        <div>
+          <small>Virtual capital</small>
+          <strong>$10,000.00</strong>
+          <span className="stat-help">funded when you activate</span>
+        </div>
+        <div>
+          <small>Net return</small>
+          <strong>—</strong>
+          <span className="stat-help">measured from the first observation</span>
+        </div>
+        <div>
+          <small>Observed drawdown</small>
+          <strong>—</strong>
+        </div>
+        <div>
+          <small>Execution fees</small>
+          <strong>$0.00</strong>
+        </div>
+      </div>
+    );
   const eq = m.portfolio?.equity ?? m.curve?.at(-1)?.equity ?? 1e12;
   let peak = 1e12,
     dd = 0;
@@ -602,7 +625,33 @@ export default function Agents() {
                   <span>THE PATH SO FAR</span>
                   <span>Virtual equity · 15-second observations</span>
                 </div>
-                <Curve series={[m.curve]} labels={[m.plan.name]} />
+                <Curve
+                  series={[m.curve]}
+                  labels={[m.plan.name]}
+                  empty={
+                    m.status === "DRAFT" ? (
+                      <>
+                        This mission is still a draft, so nothing has been recorded.
+                        <br />
+                        <small>
+                          Run a historical replay above to see how the rules behave, then activate the mission to start recording its real virtual equity every 15 seconds.
+                        </small>
+                      </>
+                    ) : m.status === "ACTIVE" ? (
+                      <>
+                        The first observation arrives within 15 seconds.
+                        <br />
+                        <small>Virtual equity is sampled while the mission runs.</small>
+                      </>
+                    ) : (
+                      <>
+                        No observations were recorded for this mission.
+                        <br />
+                        <small>It was never active long enough to sample its equity.</small>
+                      </>
+                    )
+                  }
+                />
               </section>
               <div className="mission-two">
                 <section className="mission-block">
@@ -862,7 +911,7 @@ export default function Agents() {
           }}
         >
           <section
-            className="product-modal"
+            className={"product-modal" + (editor ? " product-modal-wide" : "")}
             role="dialog"
             aria-modal="true"
             aria-label={

@@ -3,7 +3,7 @@ import {useMemo,useEffect,useRef,memo} from 'react';
 import {ReactFlow,ReactFlowProvider,Background,Controls,MiniMap,Handle,Position,useNodesState,useReactFlow,MarkerType} from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import {missionGraph} from './mission-graph.mjs';
-const icons={indicator:'∿',value:'#',condition:'⋚',logic:'⋈',output:'↗'};
+const icons={indicator:'∿',value:'#',condition:'⋚',pattern:'▮',logic:'⋈',output:'↗'};
 const MissionNode=memo(function MissionNode({data,selected}){return <div className={`mission-flow-node ${data.kind} ${data.status||'idle'} ${selected?'chosen':''}`}>
  {data.inputs.map((p,i)=><Handle key={p} id={p} type="target" position={Position.Left} isConnectable={false} style={{top:`${100*(i+1)/(data.inputs.length+1)}%`}}/>)}
  <div className="mission-flow-node-head"><span className="mission-flow-node-icon">{icons[data.kind]}</span><strong>{data.title}</strong><span className="mission-flow-node-status">{data.status==='pass'?'✓':data.status==='fail'?'−':'○'}</span></div>

@@ -82,6 +82,8 @@ def replay(plan, ctx, slippageBps=5):
     day = None
     daystart = 10000.0
     risk = {**engine.DEFAULT_RISK, **plan["flow"].get("risk", {})}
+    hold = []
+    entry_reference = rows[221]["open"] * (1 + slippageBps / 10000) * 1.001
     for i in range(220, len(rows) - 1):
         bar = rows[i]["time"] + engine.TF[plan["timeframe"]] - 1
         if bar // 86400000 != day:
@@ -158,6 +160,7 @@ def replay(plan, ctx, slippageBps=5):
         peak = max(peak, marked)
         dd = max(dd, (peak - marked) / peak * 100)
         curve.append({"created_at": rows[i + 1]["time"], "equity": round(marked * 1e8)})
+        hold.append({"created_at": rows[i + 1]["time"], "equity": round(10000 / entry_reference * rows[i + 1]["close"] * 1e8)})
     benchmark = (
         10000
         / (rows[221]["open"] * (1 + slippageBps / 10000) * 1.001)
@@ -168,6 +171,7 @@ def replay(plan, ctx, slippageBps=5):
             json.dumps(plan, sort_keys=True, separators=(",", ":")).encode()
         ).hexdigest(),
         "curve": curve,
+        "benchmarkCurve": hold,
         "events": events,
         "fees": fees,
         "returnPct": (marked / 10000 - 1) * 100,

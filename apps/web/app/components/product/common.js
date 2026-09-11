@@ -136,27 +136,41 @@ export function useModal(active, onClose) {
     };
   }, [active]);
 }
-export function Curve({ series = [], labels = [] }) {
+export function Curve({ series = [], labels = [], markers = [], benchmark = null, empty = null }) {
   const vals = series.flat().map((x) => Number(x.equity));
   if (!vals.length)
     return (
       <div className="empty-curve">
-        Performance starts with your first observation.
-        <br />
-        <small>Results are recorded while the mission runs.</small>
+        {empty || (
+          <>
+            Performance starts with your first observation.
+            <br />
+            <small>Results are recorded while the mission runs.</small>
+          </>
+        )}
       </div>
     );
-  const times = series.flat().map((x) => new Date(x.created_at).getTime());
+  const all = benchmark ? [...series.flat(), ...benchmark] : series.flat();
+  const times = all.map((x) => new Date(x.created_at).getTime());
+  const allVals = all.map((x) => Number(x.equity));
   const start = Math.min(...times),
     end = Math.max(...times);
-  let min = Math.min(...vals) * 0.999,
-    max = Math.max(...vals) * 1.001;
+  let min = Math.min(...allVals) * 0.999,
+    max = Math.max(...allVals) * 1.001;
   const point = (p) => [
     20 +
       ((new Date(p.created_at).getTime() - start) / Math.max(1, end - start)) *
         680,
     205 - ((p.equity - min) / (max - min)) * 180,
   ];
+  const nearest = (t) => {
+    const pts = series[0] || [];
+    let best = pts[0];
+    for (const q of pts)
+      if (Math.abs(new Date(q.created_at).getTime() - t) < Math.abs(new Date(best.created_at).getTime() - t)) best = q;
+    return best;
+  };
+  const baseline = series[0]?.[0]?.equity;
   return (
     <div className="comparison-curve">
       <svg
@@ -169,6 +183,18 @@ export function Curve({ series = [], labels = [] }) {
             <path key={y} d={"M0 " + y + "H720"} />
           ))}
         </g>
+        {baseline !== undefined && baseline >= min && baseline <= max && (
+          <path d={`M20 ${205 - ((baseline - min) / (max - min)) * 180}H700`} stroke="#8b9481" strokeDasharray="2 4" fill="none" />
+        )}
+        {benchmark && (
+          <polyline
+            fill="none"
+            stroke="#8b9481"
+            strokeWidth="1.5"
+            strokeDasharray="5 4"
+            points={benchmark.map((p) => point(p).join(",")).join(" ")}
+          />
+        )}
         {series.map((points, i) => (
           <g key={i} fill={i ? "#465f69" : "#ed603c"}>
             <polyline
@@ -183,6 +209,18 @@ export function Curve({ series = [], labels = [] }) {
             )}
           </g>
         ))}
+        {markers.map((m, i) => {
+          const q = nearest(new Date(m.created_at).getTime());
+          if (!q) return null;
+          const [x, y] = point({ ...q, created_at: m.created_at });
+          const buy = m.side === "BUY";
+          return (
+            <g key={i} transform={`translate(${x} ${y})`}>
+              <title>{(buy ? "Buy " : "Sell ") + new Date(m.created_at).toLocaleString()}</title>
+              <path d={buy ? "M0 -9 L5 -1 L-5 -1 Z" : "M0 9 L5 1 L-5 1 Z"} fill={buy ? "#487657" : "#bd4a2a"} />
+            </g>
+          );
+        })}
         <text x="20" y="234" fill="#8b9481" fontSize="9">
           {new Date(start).toLocaleTimeString()}
         </text>
@@ -196,6 +234,9 @@ export function Curve({ series = [], labels = [] }) {
             ● {name}
           </span>
         ))}
+        {benchmark && <span style={{ color: "#8b9481" }}>╌ Buy &amp; hold</span>}
+        {markers.length > 0 && <span style={{ color: "#487657" }}>▲ Buy</span>}
+        {markers.length > 0 && <span style={{ color: "#bd4a2a" }}>▼ Sell</span>}
       </div>
     </div>
   );

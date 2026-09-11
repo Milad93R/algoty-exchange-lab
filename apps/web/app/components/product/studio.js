@@ -2,48 +2,19 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import MissionCanvas from "./MissionCanvas";
 import { api, Curve, fmt } from "./common";
-const kinds = [
-  "close",
-  "open",
-  "high",
-  "low",
-  "volume",
-  "sma",
-  "ema",
-  "rsi",
-  "atr",
-  "highest",
-  "lowest",
-  "volumeRatio",
-];
-const ops = [
-  "gt",
-  "gte",
-  "lt",
-  "lte",
-  "crossAbove",
-  "crossBelow",
-  "all",
-  "any",
-  "not",
-  "consecutive",
-  "sequence",
-  "schedule",
-];
-const words = {
-  gt: "is above",
-  gte: "is at least",
-  lt: "is below",
-  lte: "is at most",
-  crossAbove: "crosses above",
-  crossBelow: "crosses below",
-  all: "All conditions",
-  any: "Any condition",
-  not: "Invert condition",
-  consecutive: "Consecutive closes",
-  sequence: "In this order",
-  schedule: "Trading hours · UTC",
-};
+import {
+  GROUPS,
+  KINDS,
+  PARAM_DEFAULTS,
+  paramDefault,
+  PARAM_LABELS,
+  PATTERNS,
+  SWING_PATTERNS,
+  OPS as ops,
+  WORDS as words,
+  describeOperand as val,
+  describeNode as label,
+} from "./library.mjs";
 const id = () => "n_" + Math.random().toString(36).slice(2, 10);
 const leaf = () => ({
   id: id(),
@@ -126,16 +97,6 @@ export function starter(kind) {
     flow: template(kind),
   };
 }
-function val(v) {
-  return typeof v === "number"
-    ? String(v)
-    : `${v?.kind || "—"}${v?.period ? " " + v.period : ""}${v?.offset ? " · previous " + v.offset : ""}${v?.symbol ? " · " + v.symbol.replace("USDT", "") : ""}${v?.timeframe ? " / " + v.timeframe : ""}`;
-}
-function label(n) {
-  return n.left !== undefined
-    ? `${val(n.left)} ${words[n.op]} ${val(n.right)}`
-    : `${words[n.op]}${n.bars ? " · " + n.bars : ""}${n.within ? " · " + n.within + " bars" : ""}${n.op === "schedule" ? " · " + n.startHour + "–" + n.endHour : ""}`;
-}
 function children(n) {
   return n.children || (n.child ? [n.child] : []);
 }
@@ -157,22 +118,30 @@ function change(flow, key, fn) {
 }
 function Operand({ value, onChange }) {
   const numeric = typeof value === "number";
+  const meta = numeric ? null : KINDS[value.kind];
   return (
     <div className="operand">
       <select
         aria-label="Value source"
         value={numeric ? "number" : value.kind}
-        onChange={(e) =>
-          onChange(
-            e.target.value === "number"
-              ? 0
-              : { kind: e.target.value, period: 14 },
-          )
-        }
+        onChange={(e) => {
+          const kind = e.target.value;
+          if (kind === "number") return onChange(0);
+          const next = { kind };
+          for (const p of KINDS[kind].params) next[p] = paramDefault(kind, p);
+          if (!numeric) for (const k of ["offset", "symbol", "timeframe"]) if (value[k]) next[k] = value[k];
+          onChange(next);
+        }}
       >
         <option value="number">Fixed value</option>
-        {kinds.map((k) => (
-          <option key={k}>{k}</option>
+        {GROUPS.map((g) => (
+          <optgroup key={g.name} label={g.name}>
+            {g.kinds.map(([k, name]) => (
+              <option key={k} value={k}>
+                {name}
+              </option>
+            ))}
+          </optgroup>
         ))}
       </select>
       {numeric ? (
@@ -185,18 +154,20 @@ function Operand({ value, onChange }) {
         />
       ) : (
         <>
-          <label>
-            Period
-            <input
-              type="number"
-              min="2"
-              max="200"
-              value={value.period || 14}
-              onChange={(e) =>
-                onChange({ ...value, period: Number(e.target.value) })
-              }
-            />
-          </label>
+          {meta?.help && <small className="operand-help">{meta.help}</small>}
+          {meta?.params.map((p) => (
+            <label key={p}>
+              {PARAM_LABELS[p]}
+              <input
+                type="number"
+                min={p === "mult" ? 0.5 : 2}
+                max={p === "mult" ? 5 : 200}
+                step={p === "mult" ? 0.1 : 1}
+                value={value[p] ?? paramDefault(value.kind, p)}
+                onChange={(e) => onChange({ ...value, [p]: Number(e.target.value) })}
+              />
+            </label>
+          ))}
           <label>
             Previous bars
             <input
@@ -266,6 +237,11 @@ export function FlowEditor({ flow, onChange }) {
         } else if (op === "schedule") {
           x.startHour = 0;
           x.endHour = 24;
+        } else if (op === "pattern") {
+          x.name = previous.name || "bullishEngulfing";
+        } else if (op === "rising" || op === "falling") {
+          x.left = previous.left ?? { kind: "ema", period: 20 };
+          x.bars = previous.bars || 3;
         } else {
           x.left = previous.left ?? { kind: "close" };
           x.right = previous.right ?? { kind: "ema", period: 20 };
@@ -295,17 +271,57 @@ export function FlowEditor({ flow, onChange }) {
         </label>
         {n.left !== undefined && (
           <>
-            <span className="overline">LEFT SIDE</span>
+            <span className="overline">{n.right !== undefined ? "LEFT SIDE" : "WATCH THIS VALUE"}</span>
             <Operand value={n.left} onChange={(v) => update("left", v)} />
-            <span className="overline">RIGHT SIDE</span>
-            <Operand value={n.right} onChange={(v) => update("right", v)} />
+            {n.right !== undefined && (
+              <>
+                <span className="overline">RIGHT SIDE</span>
+                <Operand value={n.right} onChange={(v) => update("right", v)} />
+              </>
+            )}
           </>
         )}
-        {["bars", "within", "startHour", "endHour"]
-          .filter((k) => k in n)
-          .map((k) => (
+        {n.op === "pattern" && (
+          <>
+            <label>
+              Pattern
+              <select
+                aria-label="Candle pattern"
+                value={n.name}
+                onChange={(e) => update("name", e.target.value)}
+              >
+                {PATTERNS.map(([k, name]) => (
+                  <option key={k} value={k}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <small className="operand-help">{PATTERNS.find(([k]) => k === n.name)?.[2]}</small>
+            {SWING_PATTERNS.includes(n.name) && (
+              <label>
+                Swing strength · bars each side
+                <input
+                  type="number"
+                  min="2"
+                  max="50"
+                  value={n.period || 5}
+                  onChange={(e) => update("period", Number(e.target.value))}
+                />
+              </label>
+            )}
+          </>
+        )}
+        {[
+          ["bars", n.op === "consecutive" ? "Closed bars in a row" : "Bars"],
+          ["within", "Within · bars"],
+          ["startHour", "Start hour · UTC"],
+          ["endHour", "End hour · UTC"],
+        ]
+          .filter(([k]) => k in n)
+          .map(([k, text]) => (
             <label key={k}>
-              {k}
+              {text}
               <input
                 type="number"
                 value={n[k]}
@@ -346,6 +362,54 @@ export function FlowEditor({ flow, onChange }) {
           </>
         )}
       </div>
+      <details className="rule-library">
+        <summary>
+          <span className="overline">THE LIBRARY</span>
+          <strong>Every value and pattern these rules can use</strong>
+          <span aria-hidden="true">+</span>
+        </summary>
+        <div className="rule-library-grid">
+          {GROUPS.map((g) => (
+            <section key={g.name}>
+              <h4>{g.name}</h4>
+              {g.kinds.map(([k, name, help, params = []]) => (
+                <p key={k}>
+                  <b>{name}</b>
+                  {params.length > 0 && <i>{params.map((x) => PARAM_LABELS[x].toLowerCase()).join(" · ")}</i>}
+                  <span>{help}</span>
+                </p>
+              ))}
+            </section>
+          ))}
+          <section>
+            <h4>Candle patterns</h4>
+            {PATTERNS.map(([k, name, help]) => (
+              <p key={k}>
+                <b>{name}</b>
+                <span>{help}</span>
+              </p>
+            ))}
+          </section>
+          <section>
+            <h4>Logic</h4>
+            {[
+              ["Compare", "above · at least · below · at most · crosses above · crosses below"],
+              ["Trend", "a value rising or falling for N bars in a row"],
+              ["Groups", "all conditions · any condition · invert"],
+              ["Time", "consecutive closes · ordered sequence within N bars · UTC trading hours"],
+              ["Context", "every value can read another market (BTC, ETH, SOL) or timeframe (1m–1h)"],
+            ].map(([name, help]) => (
+              <p key={name}>
+                <b>{name}</b>
+                <span>{help}</span>
+              </p>
+            ))}
+          </section>
+        </div>
+        <p className="micro-note">
+          Decisions use closed candles only. RSI, ATR and ADX use Wilder smoothing; EMA is seeded by the first-period mean; Bollinger bands use population deviation. Not supported: shorting, leverage, news or on-chain data, custom code.
+        </p>
+      </details>
       <div className="flow-risk">
         <h3>Boundaries of the mission.</h3>
         {[
@@ -386,6 +450,124 @@ export function FlowEditor({ flow, onChange }) {
   );
 }
 export function FlowGraph(props) { return <MissionCanvas {...props}/>; }
+export function replayTrades(replay) {
+  // Pair fills into round trips: buys accumulate a position, sells close part or all of it.
+  const trades = [];
+  let open = null;
+  for (const e of replay.events || []) {
+    const f = e.fill;
+    if (!f) continue;
+    const price = f.price / 100,
+      qty = f.quantity / 1e6,
+      fee = f.fee / 1e8;
+    if (f.side === "BUY") {
+      if (!open) open = { entryTime: f.created_at, entries: 0, cost: 0, qty: 0, fees: 0, reason: e.message };
+      open.entries += 1;
+      open.cost += qty * price;
+      open.qty += qty;
+      open.fees += fee;
+    } else if (open) {
+      const avg = open.cost / open.qty;
+      const sold = Math.min(qty, open.qty);
+      const pnl = (price - avg) * sold - fee - open.fees * (sold / open.qty);
+      trades.push({
+        entryTime: open.entryTime,
+        exitTime: f.created_at,
+        entryPrice: avg,
+        exitPrice: price,
+        pnlPct: ((price * sold - fee) / (avg * sold + open.fees * (sold / open.qty)) - 1) * 100,
+        pnl,
+        reason: e.message,
+        entries: open.entries,
+        partial: sold < open.qty - 1e-9,
+      });
+      open.fees -= open.fees * (sold / open.qty);
+      open.cost -= avg * sold;
+      open.qty -= sold;
+      if (open.qty <= 1e-9) open = null;
+    }
+  }
+  return { trades, open };
+}
+export function ReplayVerdict({ replay, mission }) {
+  const { trades, open } = replayTrades(replay);
+  const wins = trades.filter((t) => t.pnl > 0).length;
+  const losses = trades.length - wins;
+  const minutes = { "1m": 1, "5m": 5, "15m": 15, "1h": 60 }[mission.plan.timeframe] || 1;
+  const span = replay.bars * minutes;
+  const window = span >= 1440 ? (span / 1440).toFixed(1) + " days" : span >= 60 ? Math.round(span / 60) + " hours" : span + " minutes";
+  const asset = mission.plan.symbol.replace("USDT", "");
+  const diff = replay.returnPct - replay.benchmarkReturnPct;
+  const avg = trades.length ? trades.reduce((s, t) => s + t.pnlPct, 0) / trades.length : 0;
+  const small = trades.length < 10 || span < 1440;
+  const inMarket = (replay.events || []).filter((e) => e.trace && Object.keys(e.trace).length && e.action !== "WAIT").length;
+  return (
+    <div className="replay-verdict">
+      <span className="overline">WHAT HAPPENED</span>
+      <p>
+        Over the last <b>{window}</b> ({replay.bars} closed {mission.plan.timeframe} candles), the rules opened{" "}
+        <b>{trades.length + (open ? 1 : 0)} position{trades.length + (open ? 1 : 0) === 1 ? "" : "s"}</b>
+        {trades.length ? (
+          <>
+            : <b className="up">{wins} won</b>, <b className="down">{losses} lost</b>, average {avg >= 0 ? "+" : ""}{fmt(avg)}% per closed trade
+          </>
+        ) : open ? " and it is still open at the end of the window" : ", so nothing was bought or sold"}
+        .
+      </p>
+      <p>
+        {trades.length + (open ? 1 : 0) === 0
+          ? `Starting with $10,000 you would still have $10,000. Simply holding ${asset} would have ${replay.benchmarkReturnPct >= 0 ? "gained" : "lost"} ${fmt(Math.abs(replay.benchmarkReturnPct))}%.`
+          : `Starting with $10,000 you would end with $${fmt(10000 * (1 + replay.returnPct / 100))} (${replay.returnPct >= 0 ? "+" : ""}${fmt(replay.returnPct)}%). Simply holding ${asset} the whole time would have ${replay.benchmarkReturnPct >= 0 ? "gained" : "lost"} ${fmt(Math.abs(replay.benchmarkReturnPct))}%, so the rules did ${Math.abs(diff) < 0.005 ? "about the same" : diff > 0 ? `better by ${fmt(diff)} points` : `worse by ${fmt(-diff)} points`}${trades.length === 0 && open ? " so far" : ""}.`}
+      </p>
+      {small && (
+        <p className="replay-warning">
+          Too small a sample to judge: {trades.length} closed trade{trades.length === 1 ? "" : "s"} over {window}. This replay shows <em>how the rules behave</em> on recent candles, not whether they make money.
+        </p>
+      )}
+    </div>
+  );
+}
+export function TradeList({ replay }) {
+  const { trades, open } = replayTrades(replay);
+  if (!trades.length && !open) return null;
+  return (
+    <div className="replay-trades">
+      <span className="overline">EVERY ROUND TRIP</span>
+      <table>
+        <thead>
+          <tr>
+            <th>Entered</th>
+            <th>Exited</th>
+            <th>Entry → exit</th>
+            <th>Result</th>
+            <th>Why it closed</th>
+          </tr>
+        </thead>
+        <tbody>
+          {trades.map((t, i) => (
+            <tr key={i}>
+              <td>{new Date(t.entryTime).toLocaleString()}{t.entries > 1 ? ` (${t.entries} entries)` : ""}</td>
+              <td>{new Date(t.exitTime).toLocaleString()}</td>
+              <td>${fmt(t.entryPrice)} → ${fmt(t.exitPrice)}</td>
+              <td className={t.pnl >= 0 ? "up" : "down"}>{t.pnlPct >= 0 ? "+" : ""}{fmt(t.pnlPct)}% · {t.pnl >= 0 ? "+" : "−"}${fmt(Math.abs(t.pnl))}{t.partial ? " · partial" : ""}</td>
+              <td>{t.reason}</td>
+            </tr>
+          ))}
+          {open && (
+            <tr>
+              <td>{new Date(open.entryTime).toLocaleString()}</td>
+              <td>still open</td>
+              <td>${fmt(open.cost / open.qty)} → marked at close</td>
+              <td>—</td>
+              <td>Position open at the end of the window</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function Studio({ mission, onEdit }) {
   const [selected, setSelected] = useState(null),
     [replay, setReplay] = useState(null),
@@ -637,20 +819,28 @@ export default function Studio({ mission, onEdit }) {
       )}
       {replay && (
         <div className="replay-result">
-          <div className="stat-strip">
+          <ReplayVerdict replay={replay} mission={mission} />
+          <div className="stat-strip stat-strip-explained">
             {[
-              ["Net return", fmt(replay.returnPct) + "%"],
-              ["Buy & hold", fmt(replay.benchmarkReturnPct) + "%"],
-              ["Drawdown", fmt(replay.drawdownPct) + "%"],
-              ["Fills / fees", replay.fills + " / $" + fmt(replay.fees)],
-            ].map(([k, v]) => (
+              ["Net return", fmt(replay.returnPct) + "%", "what $10,000 became after fees and slippage"],
+              ["Buy & hold", fmt(replay.benchmarkReturnPct) + "%", "if you had simply bought at the start and held"],
+              ["Max drawdown", fmt(replay.drawdownPct) + "%", "the worst dip from a peak along the way"],
+              ["Fills / fees", replay.fills + " / $" + fmt(replay.fees), "orders executed and what they cost"],
+            ].map(([k, v, help]) => (
               <div key={k}>
                 <small>{k}</small>
                 <strong>{v}</strong>
+                <span className="stat-help">{help}</span>
               </div>
             ))}
           </div>
-          <Curve series={[replay.curve]} labels={["Historical equity"]} />
+          <Curve
+            series={[replay.curve]}
+            labels={["Rules"]}
+            benchmark={replay.benchmarkCurve || null}
+            markers={(replay.events || []).filter((e) => e.fill).map((e) => ({ created_at: e.fill.created_at, side: e.fill.side }))}
+          />
+          <TradeList replay={replay} />
           <div className="replay-scrub">
             <button
               className="secondary"
@@ -679,7 +869,8 @@ export default function Studio({ mission, onEdit }) {
             </span>
           </div>
           <p className="micro-note">
-            {replay.model} Dates: {new Date(replay.start).toLocaleString()} —{" "}
+            Scrub through the candles above to see which rules passed or failed at each decision; the flow and the observation panel follow the slider.
+            {" "}{replay.model} Dates: {new Date(replay.start).toLocaleString()} —{" "}
             {new Date(replay.end).toLocaleString()}.
           </p>
         </div>
