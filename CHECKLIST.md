@@ -34,7 +34,7 @@
 
 ## Phase 5: Studio, AI, docs, ship
 - [x] library.mjs groups/params/patterns/modifier editor/formula editor; graph nodes; AI prompt; v3 README tables
-- [ ] Python tests green; worker restarted; Java rebuilt if touched; web rebuilt via infra/build-web.sh; public verified
-- [ ] Commit + push
+- [x] Python tests green (52); worker restarted; Java rebuilt + restarted; web rebuilt on the NUC (ROG tunnel down); public verified
+- [x] Commit + push
 
-**Complete?** [ ]
+**Complete?** [x]
