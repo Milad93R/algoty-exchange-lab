@@ -6,11 +6,9 @@ export default function PageReady({children}) {
   useEffect(()=>{
     let active=true;
     // Client-side navigation keeps this layout mounted, so the cover only runs on a cold load.
-    // A repeat cold load in the same tab already has fonts and artwork cached: reveal at once.
-    let seen=false;
-    try{seen=sessionStorage.getItem('algoty-ready')==='1'}catch{}
-    const done=()=>{try{sessionStorage.setItem('algoty-ready','1')}catch{};if(active)setReady(true)};
-    if(seen){requestAnimationFrame(done);if('serviceWorker' in navigator)navigator.serviceWorker.register('/asset-sw.js').catch(()=>{});return()=>{active=false}}
+    // Every cold load waits for fonts, hero images and the rendered 3D coin, so the page never
+    // reveals the flat poster first; cached assets make repeat loads short.
+    const done=()=>{if(active)setReady(true)};
     let observer;
     const frame=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     const fonts=Promise.allSettled(['400 16px DM','600 16px DM','700 16px DM','400 16px Hand'].map(font=>document.fonts.load(font)));
