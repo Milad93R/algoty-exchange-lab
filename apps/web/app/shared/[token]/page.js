@@ -1,4 +1,5 @@
 "use client";
+import Link from 'next/link';
 import { useEffect, useState, use } from "react";
 import {
   api,
@@ -33,9 +34,9 @@ export default function Shared({ params }) {
               The same market<span>.</span>
             </h1>
           </div>
-          <a className="primary" href="/agents">
+          <Link className="primary" href="/agents">
             Create your own mission ↗
-          </a>
+          </Link>
         </div>
         <Notice text={error} />
         {!data && !error && (

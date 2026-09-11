@@ -1,5 +1,18 @@
 const path = require("path");
 const root = path.resolve(__dirname, "..");
+// pm2 may inherit __NEXT_PROCESSED_ENV from another Next.js process, which makes
+// `next start` skip apps/web/.env.local. Clear the flag and pass the file explicitly.
+const fs = require("fs");
+function envFile(file) {
+  const out = {};
+  try {
+    for (const line of fs.readFileSync(file, "utf8").split("\n")) {
+      const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/.exec(line);
+      if (m && !line.trim().startsWith("#")) out[m[1]] = m[2].replace(/^["']|["']$/g, "");
+    }
+  } catch {}
+  return out;
+}
 module.exports = {
   apps: [
     {
@@ -23,9 +36,11 @@ module.exports = {
       name: "exchange-lab-web",
       cwd: root + "/apps/web",
       script: "node_modules/next/dist/bin/next",
-      args: "dev --hostname 127.0.0.1 --port 18200",
+      args: "start --hostname 127.0.0.1 --port 18200",
       env: {
-        NODE_ENV: "development",
+        ...envFile(root + "/apps/web/.env.local"),
+        __NEXT_PROCESSED_ENV: "",
+        NODE_ENV: "production",
         NODE_OPTIONS: "--max-old-space-size=768",
         NEXT_TELEMETRY_DISABLED: "1",
       },

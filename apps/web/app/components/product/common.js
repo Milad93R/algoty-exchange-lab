@@ -1,4 +1,5 @@
 "use client";
+import Link from 'next/link';
 import Brand from "../Brand";
 import { useEffect, useState, useRef } from "react";
 export const fmt = (n, d = 2) =>
@@ -66,24 +67,24 @@ export function Shell({ active, children, user }) {
         <Brand/>
         <span className="product-mode">LIVE MARKET / PAPER CAPITAL</span>
         <nav>
-          <a className={active === "trade" ? "selected" : ""} href="/trade">
+          <Link className={active === "trade" ? "selected" : ""} href="/trade">
             Exchange
-          </a>
-          <a className={active === "agents" ? "selected" : ""} href="/agents">
+          </Link>
+          <Link className={active === "agents" ? "selected" : ""} href="/agents">
             AI missions
-          </a>
-          <a href="/markets">Markets</a>
+          </Link>
+          <Link href="/markets">Markets</Link>
         </nav>
-        <a className="account-link" href="/account">
+        <Link className="account-link" href="/account">
           <span>{user?.name?.slice(0, 1) || "↗"}</span>
           {user?.registered ? user.name : "Save your account"}
-        </a>
+        </Link>
       </header>
       <div className="product-body">{children}</div>
       <footer className="product-footer">
         <span>ALGOTY / A MORE CONSIDERED MOVE.</span>
         <span>Live Binance data · Virtual funds · 0.1% execution fee</span>
-        <a href="/agents">Meet your agent ↗</a>
+        <Link href="/agents">Meet your agent ↗</Link>
       </footer>
     </div>
   );

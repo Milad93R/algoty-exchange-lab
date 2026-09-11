@@ -5,6 +5,12 @@ export default function PageReady({children}) {
   const [ready,setReady]=useState(false);
   useEffect(()=>{
     let active=true;
+    // Client-side navigation keeps this layout mounted, so the cover only runs on a cold load.
+    // A repeat cold load in the same tab already has fonts and artwork cached: reveal at once.
+    let seen=false;
+    try{seen=sessionStorage.getItem('algoty-ready')==='1'}catch{}
+    const done=()=>{try{sessionStorage.setItem('algoty-ready','1')}catch{};if(active)setReady(true)};
+    if(seen){requestAnimationFrame(done);if('serviceWorker' in navigator)navigator.serviceWorker.register('/asset-sw.js').catch(()=>{});return()=>{active=false}}
     let observer;
     const frame=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     const fonts=Promise.allSettled(['400 16px DM','600 16px DM','700 16px DM','400 16px Hand'].map(font=>document.fonts.load(font)));
@@ -16,9 +22,9 @@ export default function PageReady({children}) {
     });
     const timeout=setTimeout(()=>{
       if(sculpture&&!sculpture.dataset.ready)sculpture.dataset.ready='fallback';
-      if(active)setReady(true);
+      done();
     },8000);
-    Promise.allSettled([fonts,pictures,artwork]).then(frame).then(()=>{clearTimeout(timeout);if(active)setReady(true)});
+    Promise.allSettled([fonts,pictures,artwork]).then(frame).then(()=>{clearTimeout(timeout);done()});
     if('serviceWorker' in navigator)navigator.serviceWorker.register('/asset-sw.js').catch(()=>{});
     return()=>{active=false;clearTimeout(timeout);observer?.disconnect()};
   },[]);

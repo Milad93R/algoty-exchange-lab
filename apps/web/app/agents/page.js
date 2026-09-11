@@ -1,4 +1,5 @@
 "use client";
+import Link from 'next/link';
 import { useEffect, useState } from "react";
 import Studio, {
   FlowEditor,
@@ -346,7 +347,7 @@ export default function Agents() {
           <span>
             Your agents<b>{list.length}</b>
           </span>
-          <a href="/trade">Back to exchange ↗</a>
+          <Link href="/trade">Back to exchange ↗</Link>
         </div>
       </div>
       <Notice text={notice || error} clear={() => setNotice("")} />

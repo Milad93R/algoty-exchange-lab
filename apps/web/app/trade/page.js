@@ -1,4 +1,5 @@
 "use client";
+import Link from 'next/link';
 import { useEffect, useState, useRef } from "react";
 import {
   api,
@@ -102,7 +103,7 @@ export default function Trade() {
               {portfolio?.equity == null ? "—" : usd(portfolio.equity - 1e12)}
             </b>
           </span>
-          <a href="/agents">Delegate to an agent ↗</a>
+          <Link href="/agents">Delegate to an agent ↗</Link>
         </div>
       </div>
       <Notice text={notice || error} clear={() => setNotice("")} />

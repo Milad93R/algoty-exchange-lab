@@ -1,4 +1,5 @@
 "use client";
+import Link from 'next/link';
 import GoogleSignIn from "../components/product/GoogleSignIn";
 import AccountSettings from "../components/product/AccountSettings";
 import ForgotPassword from "../components/product/ForgotPassword";
@@ -92,12 +93,12 @@ export default function Account() {
               )}
               <AccountSettings user={user} setUser={setUser} setCode={setCode} setNotice={setNotice}/>
               <div className="mission-actions">
-                <a className="primary" href="/trade">
+                <Link className="primary" href="/trade">
                   Open exchange ↗
-                </a>
-                <a className="secondary" href="/agents">
+                </Link>
+                <Link className="secondary" href="/agents">
                   Your AI missions ↗
-                </a>
+                </Link>
               </div>
               <p className="micro-note">
                 Sessions expire after seven days. Signing in on another device
