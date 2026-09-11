@@ -31,6 +31,15 @@ PATTERNS = (
     "morningStar", "eveningStar", "higherHigh", "lowerLow", "higherLow", "lowerHigh",
 )
 SWING_PATTERNS = ("higherHigh", "lowerLow", "higherLow", "lowerHigh")
+import library, patterns, smc
+
+KINDS = KINDS + library.EXTRA_KINDS
+PARAMS.update(library.EXTRA_PARAMS)
+DEFAULTS.update(library.EXTRA_DEFAULTS)
+PATTERNS = PATTERNS + patterns.EXTRA_PATTERNS + smc.SMC_PATTERNS
+MOD_FUNCTIONS = ("average", "max", "min", "stdev", "direction", "sign", "lookback")
+MOD_AVERAGES = ("sma", "ema", "hma")
+FORMULA_NAMES = {"a", "b", "open", "high", "low", "close", "volume"}
 DEFAULT_RISK = dict(
     maxEntries=1, exitPercent=100, trailingPct=0, cooldownBars=0, dailyLossPct=5
 )
@@ -58,18 +67,33 @@ def validate(flow):
     ids = set()
     count = 0
 
-    def operand(v):
+    def operand(v, depth=0):
         if isinstance(v, (int, float)) and not isinstance(v, bool):
             number(v, -1e9, 1e9)
             return
         kind = v.get("kind") if isinstance(v, dict) else None
+        if kind == "mod":
+            if depth >= 2 or set(v) - {"kind", "fn", "of", "length", "ma"}:
+                raise ValueError("Unsupported modifier")
+            if v.get("fn") not in MOD_FUNCTIONS or v.get("ma", "sma") not in MOD_AVERAGES:
+                raise ValueError("Unknown modifier function")
+            number(v.get("length"), 1 if v["fn"] == "lookback" else 2, 50, True)
+            operand(v.get("of"), depth + 1)
+            return
         if kind not in KINDS or set(v) - ({"kind", "timeframe", "symbol", "offset"} | set(PARAMS[kind])):
             raise ValueError("Unknown indicator or parameter")
         context(v)
         for p in PARAMS[kind]:
-            number(v.get(p, DEFAULTS[p]), *({"mult": (0.5, 5, False)}.get(p, (2, 200, True))))
+            if p == "session":
+                if v.get("session", DEFAULTS["session"]) not in library.SESSIONS:
+                    raise ValueError("Unknown session")
+                continue
+            lo, hi, integer = library.NUMERIC_RANGES.get(p, {"mult": (0.5, 5, False)}.get(p, (2, 200, True)))
+            number(v.get(p, DEFAULTS[p]), lo, hi, integer)
         if kind in MACD_KINDS and v.get("fast", 12) >= v.get("slow", 26):
             raise ValueError("MACD fast period must be shorter than slow")
+        if kind in ("superTrend", "superTrendDir", "psar", "psarDir") and v.get("step", 0.02) > v.get("maxStep", 0.2):
+            raise ValueError("Parabolic step must not exceed the maximum")
 
     def context(v):
         number(v.get("offset", 0), 0, 50, True)
@@ -117,11 +141,19 @@ def validate(flow):
             number(n.get("startHour"), 0, 23, True)
             number(n.get("endHour"), 0, 24, True)
         elif op == "pattern":
-            allowed |= {"name", "symbol", "timeframe", "offset", "period"}
+            allowed |= {"name", "symbol", "timeframe", "offset", "period", "mult", "source"}
             if n.get("name") not in PATTERNS:
                 raise ValueError("Unknown candle pattern")
             context({k: n[k] for k in ("symbol", "timeframe", "offset") if k in n})
             number(n.get("period", 5), 2, 50, True)
+            number(n.get("mult", 1.5), 0.5, 5, False)
+            if n.get("source", "rsi") not in patterns.SOURCES:
+                raise ValueError("Unknown divergence source")
+        elif op == "formula":
+            allowed |= {"left", "right", "expr"}
+            operand(n.get("left"))
+            operand(n.get("right"))
+            compile_formula(n.get("expr"))
         elif op in ("rising", "falling"):
             allowed |= {"left", "bars"}
             operand(n.get("left"))
@@ -150,16 +182,22 @@ def validate(flow):
         number(risk.get(k, DEFAULT_RISK[k]), lo, hi, integer)
 
     # Limit temporal fan-out, preventing nested history operators from exponential evaluation.
+    def operand_cost(v):
+        if isinstance(v, dict) and v.get("kind") == "mod":
+            return (1 if v["fn"] == "lookback" else v["length"]) * operand_cost(v["of"])
+        return 1
+
     def cost(n):
         op = n["op"]
         children = n.get("children", [n["child"]] if "child" in n else [])
+        operands = sum(operand_cost(n[k]) for k in ("left", "right") if k in n)
         return (
             n.get("within", 1)
             if op == "sequence"
             else n.get("bars", 1) if op in ("consecutive", "rising", "falling") else 1
-        ) * (1 + sum(cost(c) for c in children))
+        ) * (1 + operands + sum(cost(c) for c in children))
 
-    if cost(flow["entry"]) + cost(flow["exit"]) > 500:
+    if cost(flow["entry"]) + cost(flow["exit"]) > 800:
         raise ValueError("Temporal rule budget exceeded")
     return flow
 
@@ -219,7 +257,7 @@ def _stoch_k(rs, n):
     ]
 
 
-def indicator(kind, rs, p):
+def _core_indicator(kind, rs, p):
     """Value of `kind` on closed candles `rs` (latest last). None while history is insufficient."""
     n = p.get("period", 14)
     closes = [r["close"] for r in rs]
@@ -336,8 +374,19 @@ def indicator(kind, rs, p):
     return None
 
 
-def pattern(name, rs, n=5):
+def indicator(kind, rs, p):
+    if kind in library.EXTRA_KINDS:
+        return library.extra_indicator(kind, rs, p)
+    return _core_indicator(kind, rs, p)
+
+
+def pattern(name, rs, n=5, p=None):
     """Candle pattern on closed candles `rs`; None while history is insufficient. Returns (bool, details)."""
+    p = p or {}
+    if name in smc.SMC_PATTERNS:
+        return smc.smc_pattern(name, rs, n, p.get("mult", 1.5))
+    if name in patterns.EXTRA_PATTERNS:
+        return patterns.extra_pattern(name, rs, n, p)
     need = 3 if name in ("threeWhiteSoldiers", "threeBlackCrows", "morningStar", "eveningStar") else 1 if name in ("doji", "hammer", "shootingStar") else 2
     if name in SWING_PATTERNS:
         pv = _pivots(rs, n, name in ("higherHigh", "lowerHigh"))
@@ -393,6 +442,49 @@ def pattern(name, rs, n=5):
     return (None if value is None else bool(value)), details
 
 
+import ast as _ast
+
+_FORMULA_OPS = (_ast.Add, _ast.Sub, _ast.Mult, _ast.Div, _ast.Pow, _ast.USub, _ast.UAdd, _ast.Mod)
+_FORMULA_CMP = (_ast.Gt, _ast.GtE, _ast.Lt, _ast.LtE, _ast.Eq, _ast.NotEq)
+_FORMULA_FUNCS = {"abs": abs, "min": min, "max": max}
+
+
+def compile_formula(expr):
+    """Custom comparison such as `a/b > 1.5` over a, b, open, high, low, close, volume. Whitelisted AST only."""
+    if not isinstance(expr, str) or not 1 <= len(expr) <= 200:
+        raise ValueError("Formula must be short text")
+    try:
+        tree = _ast.parse(expr, mode="eval")
+    except SyntaxError:
+        raise ValueError("Formula could not be parsed")
+    comparisons = 0
+    for node in _ast.walk(tree):
+        if isinstance(node, (_ast.Expression, _ast.Constant, _ast.BinOp, _ast.UnaryOp, _ast.BoolOp, _ast.And, _ast.Or, _ast.Load)):
+            if isinstance(node, _ast.Constant) and not isinstance(node.value, (int, float)):
+                raise ValueError("Formula constants must be numbers")
+            continue
+        if isinstance(node, _ast.Compare):
+            comparisons += 1
+            continue
+        if isinstance(node, _FORMULA_OPS + _FORMULA_CMP):
+            continue
+        if isinstance(node, _ast.Name) and node.id in FORMULA_NAMES:
+            continue
+        if isinstance(node, _ast.Call) and isinstance(node.func, _ast.Name) and node.func.id in _FORMULA_FUNCS and not node.keywords:
+            continue
+        raise ValueError("Formula uses an unsupported element")
+    if not comparisons:
+        raise ValueError("Formula must compare values (for example a/b > 1.5)")
+    return compile(tree, "<formula>", "eval")
+
+
+def run_formula(expr, env):
+    try:
+        return bool(eval(compile_formula(expr), {"__builtins__": {}, **_FORMULA_FUNCS}, env))
+    except (ZeroDivisionError, OverflowError, ValueError):
+        return None
+
+
 class Evaluator:
     def __init__(self, plan, contexts, at):
         self.plan = plan
@@ -423,12 +515,46 @@ class Evaluator:
         if isinstance(v, (float, int)):
             return v
         kind = v["kind"]
+        if kind == "mod":
+            return self.modifier(v, at)
         p = {k: v.get(k, 20 if k == "period" and kind in BB_KINDS else DEFAULTS[k]) for k in PARAMS[kind]}
         key = (v.get("symbol", self.plan["symbol"]), v.get("timeframe", self.plan["timeframe"]), at, kind, v.get("offset", 0), tuple(sorted(p.items())))
         if key in self.cache:
             return self.cache[key]
         rs = self.rows(v, at)
         result = indicator(kind, rs, p) if rs else None
+        self.cache[key] = result
+        return result
+
+    def modifier(self, v, at):
+        import json, statistics
+
+        key = ("mod", json.dumps(v, sort_keys=True), at)
+        if key in self.cache:
+            return self.cache[key]
+        inner = v["of"]
+        tf = inner.get("timeframe", self.plan["timeframe"]) if isinstance(inner, dict) and inner.get("kind") != "mod" else self.plan["timeframe"]
+        step = TF[tf]
+        fn, n = v["fn"], v["length"]
+        if fn == "lookback":
+            result = self.value(inner, at - n * step)
+        else:
+            vals = [self.value(inner, at - i * step) for i in range(n)][::-1]  # oldest first
+            if any(x is None for x in vals):
+                result = None
+            elif fn == "average":
+                ma = v.get("ma", "sma")
+                result = sum(vals) / n if ma == "sma" else _ema_series(vals, n)[-1] if ma == "ema" else (library.hma_series(vals, n) or [None])[-1]
+            elif fn == "max":
+                result = max(vals)
+            elif fn == "min":
+                result = min(vals)
+            elif fn == "stdev":
+                result = statistics.pstdev(vals)
+            elif fn == "direction":
+                result = 1 if all(vals[i] > vals[i - 1] for i in range(1, n)) else -1 if all(vals[i] < vals[i - 1] for i in range(1, n)) else 0
+            else:  # sign
+                result = 1 if all(x > 0 for x in vals) else -1 if all(x < 0 for x in vals) else 0
         self.cache[key] = result
         return result
 
@@ -477,8 +603,18 @@ class Evaluator:
             details = {"withinBars": n["within"]}
         elif op == "pattern":
             rs = self.rows(n, at)
-            value, details = pattern(n["name"], rs, n.get("period", 5)) if rs else (None, {})
+            value, details = pattern(n["name"], rs, n.get("period", 5), n) if rs else (None, {})
             details = {"pattern": n["name"], **details}
+        elif op == "formula":
+            l = self.value(n["left"], at)
+            r = self.value(n["right"], at)
+            bar = self.rows({}, at)
+            details = {"left": l, "right": r, "expr": n["expr"]}
+            if l is None or r is None or not bar:
+                value = None
+            else:
+                b = bar[-1]
+                value = run_formula(n["expr"], {"a": l, "b": r, "open": b["open"], "high": b["high"], "low": b["low"], "close": b["close"], "volume": b["volume"]})
         elif op in ("rising", "falling"):
             vals = [self.value(n["left"], at - i * step) for i in range(n["bars"] + 1)]
             details = {"values": vals[::-1]}

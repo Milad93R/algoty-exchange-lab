@@ -13,9 +13,11 @@ public class Missions {
   final Exchange e;
   final Paper p;
   final Identity auth;
+  final EmailVerification mail;
   final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3)).build();
 
-  Missions(Exchange e, Paper p, Identity auth) {
+  Missions(Exchange e, Paper p, Identity auth, EmailVerification mail) {
+    this.mail = mail;
     this.e = e;
     this.p = p;
     this.auth = auth;
@@ -72,6 +74,10 @@ public class Missions {
       throw new IllegalArgumentException("Order allocation exceeds position budget");
     if (!(b.get("name") instanceof String) || ((String) b.get("name")).length() > 80)
       throw new IllegalArgumentException("Invalid mission name");
+    if (b.containsKey("mode") && !List.of("trade", "watch").contains(String.valueOf(b.get("mode"))))
+      throw new IllegalArgumentException("Mission mode must be trade or watch");
+    if ("watch".equals(b.get("mode")) && !"CUSTOM".equals(b.get("strategy")))
+      throw new IllegalArgumentException("Watch-only missions need a composable flow");
     if (!(b.get("questions") instanceof List<?>))
       throw new IllegalArgumentException("Questions must be a list");
     if (((String) b.get("name")).isBlank())
@@ -179,6 +185,15 @@ public class Missions {
           e.lock();
           return insert(uid, "User-authored flow", plan, null, 1, null);
         });
+  }
+
+  Map<String, Object> scan(String uid, String id) {
+    var m = own(uid, id);
+    auth.throttle("scan-" + uid);
+    var plan = parse((String) m.get("plan"));
+    if (!"CUSTOM".equals(plan.get("strategy")))
+      throw new IllegalArgumentException("Scanning needs a composable flow");
+    return ai("scan", Map.of("plan", plan));
   }
 
   Map<String, Object> replay(String uid, String id, Map<String, Object> options) {
@@ -453,6 +468,32 @@ public class Missions {
           if (action.equals("WAIT")) {
             event(id, "WAIT", message, evidence);
             return Map.of("recorded", true);
+          }
+          if ("watch".equals(plan.get("mode"))) {
+            // Watch-only mission: journal the signal and notify the owner; never place orders.
+            String signal = action.equals("BUY") ? "Entry signal" : "Exit signal";
+            event(id, "ALERT", signal + ": " + message, evidence);
+            String email = null;
+            try {
+              email = e.db.queryForObject("SELECT email FROM v2_users WHERE id=? AND email_verified", String.class, uid);
+            } catch (Exception ignored) {
+            }
+            boolean sent =
+                email != null
+                    && mail.notify(
+                        email,
+                        signal + " · " + plan.get("name"),
+                        signal
+                            + " on "
+                            + plan.get("symbol")
+                            + " "
+                            + plan.get("timeframe")
+                            + " at "
+                            + Instant.ofEpochMilli(bar)
+                            + " UTC.\n"
+                            + message
+                            + "\nOpen the mission journal for the rule-by-rule evidence.");
+            return Map.of("alerted", true, "emailed", sent);
           }
           var market = p.market((String) plan.get("symbol"));
           if (market.path("stale").asBoolean()) {

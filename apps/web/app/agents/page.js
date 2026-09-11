@@ -194,7 +194,23 @@ function PlanEditor({ plan, onSave, busy }) {
           ))}
       </div>
       {p.strategy === "CUSTOM" && (
-        <FlowEditor flow={p.flow} onChange={(v) => set("flow", v)} />
+        <>
+          <label className="mode-toggle">
+            <input
+              type="checkbox"
+              style={{ display: "inline", width: "auto", marginRight: 8 }}
+              checked={p.mode === "watch"}
+              onChange={(e) => set("mode", e.target.checked ? "watch" : "trade")}
+            />
+            <span>
+              <b>Watch only: alert me, never trade.</b>
+              <small>
+                The mission runs on the same closed candles but places no orders. Every new entry or exit signal is journaled and emailed to your verified address.
+              </small>
+            </span>
+          </label>
+          <FlowEditor flow={p.flow} onChange={(v) => set("flow", v)} />
+        </>
       )}
       {p.questions?.length > 0 && (
         <div className="plan-question">

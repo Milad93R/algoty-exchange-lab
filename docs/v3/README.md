@@ -6,15 +6,20 @@ Open `/agents`: describe a mission, start with a flow template, or import a JSON
 
 - `CUSTOM` plans retain mission sizing/lifecycle fields and add `flow.version=1`, `entry`, `exit`, `risk`.
 - Rule operators: all/any/not, gt/gte/lt/lte, crossAbove/crossBelow, rising/falling (an operand moved the same way for N bars), pattern (candle and swing-structure patterns), consecutive, sequence, UTC schedule.
-- Operand library (2026-09-11), all on closed candles, each with optional symbol/timeframe/offset:
-  - Price: open, high, low, close, volume, hl2, typical, change % over a period, bodyPct, rangePct.
-  - Trend: sma, ema (first-period-mean seed), wma, vwap (rolling) and vwapSession (UTC day), macd / macdSignal / macdHist (fast, slow, signal), adx (Wilder, needs 2× period).
-  - Momentum: rsi (Wilder smoothing), stochK / stochD (period, smooth), cci, williamsR.
-  - Volatility and bands: atr (Wilder), bbUpper / bbMiddle / bbLower / bbWidth / bbPercent (period, mult; population deviation).
-  - Range and structure: highest, lowest, swingHigh, swingLow (last confirmed pivot with `period` bars each side).
-  - Volume: volumeSma, volumeRatio.
-  - Patterns: bullish/bearish engulfing, hammer, shooting star, doji, inside/outside bar, three white soldiers, three black crows, morning/evening star, higher high, lower low, higher low, lower high (swing strength = `period`).
-  Periods 2–200, offsets 0–50, Bollinger multiplier 0.5–5, MACD fast < slow. Missing warmup is `waiting`, never an invented value. `workers/mission-python/test_library.py` checks every indicator against an independent pandas reference and every pattern on hand-built candles.
+- Operand library (2026-09-11, Drakdoo parity + smart money), all on closed candles, each with optional symbol/timeframe/offset:
+  - Price: open, high, low, close, volume, hl2, typical, change %, momentum, bodyPct, rangePct, obv, tdSetup (TD Sequential count).
+  - Trend: sma, ema, wma, hma, dema, vwap (rolling) / vwapSession (UTC day), macd / macdSignal / macdHist, adx / diPlus / diMinus, superTrend / superTrendDir, psar / psarDir, Ichimoku tenkan / kijun / senkouA / senkouB, sslUp / sslDown.
+  - Momentum: rsi (Wilder), stochK / stochD, kdjK / kdjD / kdjJ, cci, williamsR, mfi, cmf, cmo, pgo.
+  - Volatility and bands: atr (Wilder), bbUpper / bbMiddle / bbLower / bbWidth / bbPercent, keltnerUpper / keltnerMiddle / keltnerLower.
+  - Range and structure: highest, lowest, swingHigh, swingLow, fibLevel (retracement of the last swing leg), supportLevel / resistanceLevel (pivot clusters with 2+ touches).
+  - Smart money: structureTrend, obBullTop / obBullBottom / obBearTop / obBearBottom (latest unmitigated order block), fvgBullTop / fvgBullBottom / fvgBearTop / fvgBearBottom (latest unfilled gap), rangePosition (0–100 between last swing low and high).
+  - Sessions and levels: sessionHigh / sessionLow (asia 00–08, london 07–16, newyork 12–21 UTC), dayOpen, prevDayHigh / prevDayLow / prevDayClose, prevWeekHigh / prevWeekLow. Daily and weekly levels return `waiting` unless the loaded window covers the full previous day/week, so use a 15m or 1h context.
+  - Modifier operand `{kind:"mod", fn, of, length, ma}`: average (SMA/EMA/HMA), max, min, stdev, direction, sign, lookback of any operand over N bars; two nesting levels.
+  - Patterns (op `pattern`): 24 candle patterns; structure/chart (higher high, lower low, higher low, lower high, double top/bottom, cup, Bollinger squeeze, inside-bar breakouts, near/broke support/resistance); divergence (regular and hidden, RSI or MACD histogram); harmonics (Gartley, Bat, Butterfly, Crab, bullish and bearish); smart money (BOS, CHoCH, inside/tapped order block, breakers, FVG formed/inside, equal highs/lows, liquidity sweeps, displacement, premium/discount/equilibrium).
+  - Ops: comparisons, crossings, rising/falling, pattern, custom `formula` (`a/b > 1.5` over a, b, open, high, low, close, volume; whitelisted AST only), all/any/not, consecutive, sequence, schedule.
+  Periods 2–200, offsets 0–50, Bollinger/Keltner multiplier 0.5–5, MACD fast < slow. Missing warmup is `waiting`, never an invented value. `test_library.py` and `test_parity.py` check every indicator against an independent pandas or hand-written reference and every pattern on scripted candles. Smart-money definitions follow LuxAlgo conventions on confirmed swings (pivot strength = `period`).
+- Scanner: `POST /api/v2/missions/{id}/scan` evaluates the mission's entry and exit rules on the latest closed candle of BTC/ETH/SOL × 1m/5m/15m/1h and returns per-cell status and trace (the studio shows a grid; pick a cell to read its evidence). This is the Drakdoo "exchange probe" equivalent for the three supported markets.
+- Watch-only missions: `plan.mode = "watch"` activates like a trading mission but never places orders. Each new BUY/SELL signal is journaled as an `ALERT` event and emailed to the owner's verified address through Resend.
 - Legacy note: before 2026-09-11 RSI and ATR used simple window means; they now use standard Wilder smoothing, so old missions built on RSI/ATR thresholds evaluate slightly differently.
 - A sequence's final event must occur now; earlier children must match in strictly chronological order within the configured window. A schedule with equal endpoints means all day; overnight windows supported. AND/OR evaluate all children to make evidence inspectable.
 - Fixed notional entry size; scale-ins 1–5 per position; maximum total allocation; daily entry cap; partial rule exits 1–100%; fixed stop and optional target (0 disables target); optional trailing close stop; cooldown after fills; daily equity-loss entry gate. Protective exits always request the full remaining position. Long-only spot. Java owns funds, allocation, entry count, loss limit and settlement. Worker state preserves trailing peak across restarts.

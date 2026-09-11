@@ -48,6 +48,18 @@ public class EmailVerification {
       return Map.of("challenge",id,"email",email,"expiresIn",900);
     }catch(Exception ex){e.db.update("DELETE FROM email_challenges WHERE id=?",id);throw new IllegalArgumentException("We could not send your code. Please try again shortly.");}
   }
+  /** Plain notification (mission alerts). Never throws; returns whether delivery was accepted. */
+  boolean notify(String email,String subject,String text){
+    String key=System.getenv("RESEND_API_KEY"),from=System.getenv("MAIL_FROM");
+    if(key==null||from==null||email==null||email.isBlank())return false;
+    try{
+      String html="<div style='background:#f4f2eb;padding:40px;font-family:Arial;color:#20231f'><p style='font-size:28px;font-weight:bold'>algoty ↗</p><h1 style='font-weight:400'>"+subject.replace("<","&lt;")+"</h1><p style='white-space:pre-line'>"+text.replace("<","&lt;")+"</p><p style='color:#6b7166;font-size:12px'>Paper trading only. Rules were evaluated on closed candles; this is not a forecast.</p></div>";
+      var body=Map.of("from",from,"to",List.of(email),"subject","AlgoTy · "+subject,"html",html,"text",text);
+      var req=HttpRequest.newBuilder(URI.create("https://api.resend.com/emails")).timeout(Duration.ofSeconds(12)).header("Authorization","Bearer "+key).header("Content-Type","application/json").POST(HttpRequest.BodyPublishers.ofString(e.json.writeValueAsString(body))).build();
+      var res=client.send(req,HttpResponse.BodyHandlers.ofString());
+      return res.statusCode()>=200&&res.statusCode()<300;
+    }catch(Exception ex){return false;}
+  }
   // Called before registration's transaction: failed attempts must remain committed.
   void check(Map<String,String> b){
     check(b,"register",null);

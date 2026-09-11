@@ -4,7 +4,7 @@
 
 AlgoTy gives each visitor a virtual USDT portfolio, live Binance spot-market data, and a workstation for BTC/USDT, ETH/USDT and SOL/USDT. A natural-language AI brief creates a structured draft; the user reviews it before activation. Agents observe future closed candles, run bounded entry/exit rules and record their reasoning and paper executions. Branching creates two fresh accounts with equal capital and a shared start.
 
-The production-facing domain is https://algoty.com. This deployment remains a **public preview**. Full Next builds/typechecks are prohibited on yusam, so the web app is built remotely with `infra/build-web.sh` (ROG laptop over the reverse tunnel) and served with `next start`. `infra/ecosystem.config.cjs` passes `apps/web/.env.local` to the process explicitly and clears the inherited `__NEXT_PROCESSED_ENV` flag, which otherwise makes `next start` ignore env files. No scalability, profitability, real exchange employment or real-money custody claim follows from this deployment.
+The production-facing domain is https://algoty.com. This deployment remains a **public preview**. Full Next builds/typechecks are prohibited on yusam, so the web app is built remotely with `infra/build-web.sh` (ROG laptop over the reverse tunnel, or automatically the NUC via `mc:/host` + `docker run node:20-alpine` when the laptop tunnel is down) and served with `next start`. `infra/ecosystem.config.cjs` passes `apps/web/.env.local` to the process explicitly and clears the inherited `__NEXT_PROCESSED_ENV` flag, which otherwise makes `next start` ignore env files. No scalability, profitability, real exchange employment or real-money custody claim follows from this deployment.
 
 ## Service ownership
 

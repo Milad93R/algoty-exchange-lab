@@ -9,7 +9,14 @@ import {
   paramDefault,
   PARAM_LABELS,
   PATTERNS,
-  SWING_PATTERNS,
+  PATTERN_GROUPS,
+  PATTERN_NAMES,
+  SWING_PATTERN_SET,
+  DIVERGENCE_SET,
+  DISPLACEMENT_SET,
+  PARAM_RANGES,
+  SESSIONS,
+  MOD_FUNCTIONS,
   OPS as ops,
   WORDS as words,
   describeOperand as val,
@@ -116,9 +123,67 @@ function change(flow, key, fn) {
   if (n) fn(n);
   return f;
 }
-function Operand({ value, onChange }) {
+function Operand({ value, onChange, depth = 0 }) {
   const numeric = typeof value === "number";
-  const meta = numeric ? null : KINDS[value.kind];
+  const isMod = !numeric && value.kind === "mod";
+  const meta = numeric || isMod ? null : KINDS[value.kind];
+  if (isMod)
+    return (
+      <div className="operand operand-mod">
+        <select
+          aria-label="Value source"
+          value="mod"
+          onChange={(e) => {
+            const kind = e.target.value;
+            if (kind === "number") return onChange(0);
+            if (kind === "mod") return;
+            const next = { kind };
+            for (const p of KINDS[kind].params) next[p] = paramDefault(kind, p);
+            onChange(next);
+          }}
+        >
+          <option value="number">Fixed value</option>
+          <option value="mod">Modifier of a value</option>
+          {GROUPS.map((g) => (
+            <optgroup key={g.name} label={g.name}>
+              {g.kinds.map(([k, name]) => (
+                <option key={k} value={k}>
+                  {name}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+        <select aria-label="Modifier" value={value.fn} onChange={(e) => onChange({ ...value, fn: e.target.value, length: e.target.value === "lookback" ? Math.max(1, value.length || 1) : Math.max(2, value.length || 5) })}>
+          {MOD_FUNCTIONS.map(([k, name]) => (
+            <option key={k} value={k}>
+              {name}
+            </option>
+          ))}
+        </select>
+        <small className="operand-help">{MOD_FUNCTIONS.find(([k]) => k === value.fn)?.[2]}</small>
+        <label>
+          {value.fn === "lookback" ? "Bars ago" : "Bars"}
+          <input type="number" min={value.fn === "lookback" ? 1 : 2} max="50" value={value.length} onChange={(e) => onChange({ ...value, length: Number(e.target.value) })} />
+        </label>
+        {value.fn === "average" && (
+          <label>
+            Average type
+            <select aria-label="Average type" value={value.ma || "sma"} onChange={(e) => onChange({ ...value, ma: e.target.value })}>
+              {["sma", "ema", "hma"].map((k) => (
+                <option key={k} value={k}>
+                  {k.toUpperCase()}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        <div className="operand-inner">
+          <span className="overline">OF THIS VALUE</span>
+          <Operand value={value.of} onChange={(v) => onChange({ ...value, of: v })} depth={depth + 1} />
+        </div>
+      </div>
+    );
   return (
     <div className="operand">
       <select
@@ -127,6 +192,7 @@ function Operand({ value, onChange }) {
         onChange={(e) => {
           const kind = e.target.value;
           if (kind === "number") return onChange(0);
+          if (kind === "mod") return onChange({ kind: "mod", fn: "average", length: 5, of: numeric ? { kind: "close" } : value });
           const next = { kind };
           for (const p of KINDS[kind].params) next[p] = paramDefault(kind, p);
           if (!numeric) for (const k of ["offset", "symbol", "timeframe"]) if (value[k]) next[k] = value[k];
@@ -134,6 +200,7 @@ function Operand({ value, onChange }) {
         }}
       >
         <option value="number">Fixed value</option>
+        {depth < 2 && <option value="mod">Modifier of a value</option>}
         {GROUPS.map((g) => (
           <optgroup key={g.name} label={g.name}>
             {g.kinds.map(([k, name]) => (
@@ -155,19 +222,32 @@ function Operand({ value, onChange }) {
       ) : (
         <>
           {meta?.help && <small className="operand-help">{meta.help}</small>}
-          {meta?.params.map((p) => (
-            <label key={p}>
-              {PARAM_LABELS[p]}
-              <input
-                type="number"
-                min={p === "mult" ? 0.5 : 2}
-                max={p === "mult" ? 5 : 200}
-                step={p === "mult" ? 0.1 : 1}
-                value={value[p] ?? paramDefault(value.kind, p)}
-                onChange={(e) => onChange({ ...value, [p]: Number(e.target.value) })}
-              />
-            </label>
-          ))}
+          {meta?.params.map((p) =>
+            p === "session" ? (
+              <label key={p}>
+                {PARAM_LABELS[p]}
+                <select aria-label="Session" value={value.session || "london"} onChange={(e) => onChange({ ...value, session: e.target.value })}>
+                  {SESSIONS.map((k) => (
+                    <option key={k} value={k}>
+                      {k === "newyork" ? "New York" : k[0].toUpperCase() + k.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <label key={p}>
+                {PARAM_LABELS[p]}
+                <input
+                  type="number"
+                  min={PARAM_RANGES[p]?.[0] ?? 2}
+                  max={PARAM_RANGES[p]?.[1] ?? 200}
+                  step={PARAM_RANGES[p]?.[2] ?? 1}
+                  value={value[p] ?? paramDefault(value.kind, p)}
+                  onChange={(e) => onChange({ ...value, [p]: Number(e.target.value) })}
+                />
+              </label>
+            ),
+          )}
           <label>
             Previous bars
             <input
@@ -242,6 +322,10 @@ export function FlowEditor({ flow, onChange }) {
         } else if (op === "rising" || op === "falling") {
           x.left = previous.left ?? { kind: "ema", period: 20 };
           x.bars = previous.bars || 3;
+        } else if (op === "formula") {
+          x.left = previous.left ?? { kind: "close" };
+          x.right = previous.right ?? { kind: "sma", period: 20 };
+          x.expr = previous.expr || "a/b > 1.02";
         } else {
           x.left = previous.left ?? { kind: "close" };
           x.right = previous.right ?? { kind: "ema", period: 20 };
@@ -290,15 +374,34 @@ export function FlowEditor({ flow, onChange }) {
                 value={n.name}
                 onChange={(e) => update("name", e.target.value)}
               >
-                {PATTERNS.map(([k, name]) => (
-                  <option key={k} value={k}>
-                    {name}
-                  </option>
+                {PATTERN_GROUPS.map(([group, names]) => (
+                  <optgroup key={group} label={group}>
+                    {names.map((k) => (
+                      <option key={k} value={k}>
+                        {PATTERN_NAMES[k]}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             </label>
             <small className="operand-help">{PATTERNS.find(([k]) => k === n.name)?.[2]}</small>
-            {SWING_PATTERNS.includes(n.name) && (
+            {DIVERGENCE_SET.has(n.name) && (
+              <label>
+                Oscillator
+                <select aria-label="Divergence source" value={n.source || "rsi"} onChange={(e) => update("source", e.target.value)}>
+                  <option value="rsi">RSI 14</option>
+                  <option value="macdHist">MACD histogram</option>
+                </select>
+              </label>
+            )}
+            {DISPLACEMENT_SET.has(n.name) && (
+              <label>
+                Body · ATR multiple
+                <input type="number" min="0.5" max="5" step="0.1" value={n.mult ?? 1.5} onChange={(e) => update("mult", Number(e.target.value))} />
+              </label>
+            )}
+            {SWING_PATTERN_SET.has(n.name) && (
               <label>
                 Swing strength · bars each side
                 <input
@@ -311,6 +414,12 @@ export function FlowEditor({ flow, onChange }) {
               </label>
             )}
           </>
+        )}
+        {n.op === "formula" && (
+          <label>
+            Formula · a and b are the two values, plus open, high, low, close, volume
+            <input type="text" maxLength={200} value={n.expr} onChange={(e) => update("expr", e.target.value)} placeholder="a/b > 1.02" spellCheck={false} />
+          </label>
         )}
         {[
           ["bars", n.op === "consecutive" ? "Closed bars in a row" : "Bars"],
@@ -381,9 +490,23 @@ export function FlowEditor({ flow, onChange }) {
               ))}
             </section>
           ))}
+          {PATTERN_GROUPS.map(([group, names]) => (
+            <section key={group}>
+              <h4>{group === "Smart money" ? "Smart money events" : group === "Candles" ? "Candle patterns" : group}</h4>
+              {names.map((k) => {
+                const [, name, help] = PATTERNS.find(([x]) => x === k);
+                return (
+                  <p key={k}>
+                    <b>{name}</b>
+                    <span>{help}</span>
+                  </p>
+                );
+              })}
+            </section>
+          ))}
           <section>
-            <h4>Candle patterns</h4>
-            {PATTERNS.map(([k, name, help]) => (
+            <h4>Modifiers</h4>
+            {MOD_FUNCTIONS.map(([k, name, help]) => (
               <p key={k}>
                 <b>{name}</b>
                 <span>{help}</span>
@@ -394,6 +517,7 @@ export function FlowEditor({ flow, onChange }) {
             <h4>Logic</h4>
             {[
               ["Compare", "above · at least · below · at most · crosses above · crosses below"],
+              ["Formula", "custom expression over a and b plus open/high/low/close/volume, e.g. a/b > 1.5"],
               ["Trend", "a value rising or falling for N bars in a row"],
               ["Groups", "all conditions · any condition · invert"],
               ["Time", "consecutive closes · ordered sequence within N bars · UTC trading hours"],
@@ -407,7 +531,7 @@ export function FlowEditor({ flow, onChange }) {
           </section>
         </div>
         <p className="micro-note">
-          Decisions use closed candles only. RSI, ATR and ADX use Wilder smoothing; EMA is seeded by the first-period mean; Bollinger bands use population deviation. Not supported: shorting, leverage, news or on-chain data, custom code.
+          Decisions use closed candles only. RSI, ATR and ADX use Wilder smoothing; EMA is seeded by the first-period mean; Bollinger bands use population deviation. Smart-money events follow LuxAlgo-style definitions on confirmed swings. Daily and weekly levels need a 15m or 1h context. Not supported: shorting, leverage, news or on-chain data, arbitrary code.
         </p>
       </details>
       <div className="flow-risk">
@@ -576,9 +700,14 @@ export default function Studio({ mission, onEdit }) {
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [slip, setSlip] = useState(5),
+    [scan, setScan] = useState(null),
+    [scanCell, setScanCell] = useState(null),
+    [scanning, setScanning] = useState(false),
     [mode, setMode] = useState("live");
   useEffect(() => {
     setReplay(null);
+    setScan(null);
+    setScanCell(null);
     setSelected(null);
     setMode("live");
   }, [mission.id, JSON.stringify(mission.plan)]);
@@ -611,8 +740,24 @@ export default function Studio({ mission, onEdit }) {
     evidence = x.signal || x;
   } catch {}
   const current = mode === "replay" ? replay?.events[step] : null;
-  const trace = current?.trace || (mode === "live" ? evidence.trace || {} : {});
+  const cell = mode === "scan" && scan && scanCell ? scan.cells.find((c) => c.symbol + ":" + c.timeframe === scanCell) : null;
+  const trace = current?.trace || cell?.trace || (mode === "live" ? evidence.trace || {} : {});
   const n = selected ? find(mission.plan.flow, selected) : null;
+  async function runScan() {
+    setScanning(true);
+    setError("");
+    try {
+      const d = await api(`missions/${mission.id}/scan`, {});
+      setScan(d);
+      const first = d.cells.find((c) => c.entry === "pass") || d.cells[0];
+      if (first) setScanCell(first.symbol + ":" + first.timeframe);
+      setMode("scan");
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setScanning(false);
+    }
+  }
   async function test() {
     setBusy(true);
     setError("");
@@ -692,7 +837,7 @@ export default function Studio({ mission, onEdit }) {
         />
         <aside className="trace-panel">
           <span className="overline">
-            {mode === "live" ? "LATEST OBSERVATION" : "REPLAY OBSERVATION"}
+            {mode === "live" ? "LATEST OBSERVATION" : mode === "scan" ? "SCAN · " + (scanCell || "").replace("USDT", "").replace(":", " · ") : "REPLAY OBSERVATION"}
           </span>
           <h3>{n ? label(n) : "Every condition has a reason."}</h3>
           {n ? (
@@ -721,9 +866,11 @@ export default function Studio({ mission, onEdit }) {
           <small>
             {current
               ? new Date(current.time).toLocaleString()
-              : event
-                ? new Date(event.created_at).toLocaleString()
-                : "No evaluated candle yet"}
+              : cell
+                ? new Date(cell.barTime).toLocaleString() + " · close $" + fmt(cell.close)
+                : event
+                  ? new Date(event.created_at).toLocaleString()
+                  : "No evaluated candle yet"}
           </small>
           <p>
             {current?.message ||
@@ -788,6 +935,56 @@ export default function Studio({ mission, onEdit }) {
             {mission.plan.flow.risk?.cooldownBars ?? 0} bar cooldown
           </small>
         </div>
+      </div>
+      <div className="scan-desk">
+        <div>
+          <span className="overline">EVERY MARKET, RIGHT NOW</span>
+          <h3>Where do these rules hold?</h3>
+          <p>
+            The same entry and exit rules checked on the latest closed candle of every market and timeframe. Pick a cell to see its evidence.
+          </p>
+        </div>
+        <button className="secondary" disabled={scanning} onClick={runScan}>
+          {scanning ? "Reading twelve markets…" : scan ? "Scan again" : "Scan all markets"} ↗
+        </button>
+        {scan && (
+          <div className="scan-grid" role="grid" aria-label="Rule status by market and timeframe">
+            <div className="scan-row scan-head" role="row">
+              <span />
+              {["1m", "5m", "15m", "1h"].map((tf) => (
+                <span key={tf} role="columnheader">{tf}</span>
+              ))}
+            </div>
+            {["BTCUSDT", "ETHUSDT", "SOLUSDT"].map((symbol) => (
+              <div className="scan-row" role="row" key={symbol}>
+                <span role="rowheader">{symbol.replace("USDT", "")}</span>
+                {["1m", "5m", "15m", "1h"].map((tf) => {
+                  const c = scan.cells.find((x) => x.symbol === symbol && x.timeframe === tf) || {};
+                  const key = symbol + ":" + tf;
+                  return (
+                    <button
+                      key={tf}
+                      role="gridcell"
+                      type="button"
+                      className={"scan-cell " + (c.entry || "error") + (scanCell === key && mode === "scan" ? " chosen" : "")}
+                      title={c.error || `Entry ${c.entry} · exit ${c.exit}`}
+                      onClick={() => {
+                        setScanCell(key);
+                        setMode("scan");
+                      }}
+                    >
+                      <b>{c.entry === "pass" ? "Entry ✓" : c.entry === "fail" ? "Entry −" : c.entry === "waiting" ? "Waiting" : "Error"}</b>
+                      <small>{c.exit === "pass" ? "exit ✓" : c.exit === "fail" ? "exit −" : c.exit === "waiting" ? "exit ○" : ""}</small>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+            <p className="micro-note">
+              Scanned {new Date(scan.scannedAt).toLocaleTimeString()}. A cell turns green only when every entry condition is true on that market's last closed candle. Alerts: set the mission to <b>watch only</b> in the plan editor and activate it; each new signal is journaled and emailed.
+            </p>
+          </div>
+        )}
       </div>
       <div className="replay-desk">
         <div>

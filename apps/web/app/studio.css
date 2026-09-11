@@ -654,3 +654,121 @@
     font-size: 13px;
   }
 }
+
+/* Nested modifier operands and formula input */
+.operand-mod {
+  border-left: 2px solid #ed603c;
+  padding-left: 12px;
+}
+.operand-inner {
+  grid-column: 1 / -1;
+  border-top: 1px dashed #cfd3c6;
+  padding-top: 8px;
+}
+.operand-inner .overline {
+  display: block;
+  margin-bottom: 6px;
+}
+.node-inspector input[type="text"] {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+}
+
+/* Multi-market scan grid */
+.scan-desk {
+  padding: 28px;
+  border-top: 1px solid #d6d6cc;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px 28px;
+  align-items: center;
+}
+.scan-desk h3 {
+  margin: 8px 0 6px;
+  font-size: 22px;
+  letter-spacing: -0.6px;
+  font-weight: 400;
+}
+.scan-desk p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #656a61;
+  margin: 0;
+  max-width: 560px;
+}
+.scan-grid {
+  grid-column: 1 / -1;
+  border: 1px solid #d6d6cc;
+  background: #faf9f4;
+}
+.scan-row {
+  display: grid;
+  grid-template-columns: 70px repeat(4, 1fr);
+  border-top: 1px solid #e3e4da;
+}
+.scan-row:first-child {
+  border-top: 0;
+}
+.scan-row > span {
+  padding: 12px;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  color: #6b7166;
+  display: flex;
+  align-items: center;
+}
+.scan-head > span {
+  justify-content: center;
+}
+.product .scan-cell {
+  border: 0;
+  border-left: 1px solid #e3e4da;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  background: transparent;
+  text-align: left;
+}
+.scan-cell b {
+  font-weight: 500;
+  font-size: 12px;
+}
+.scan-cell small {
+  font-size: 10px;
+  color: #6b7166;
+}
+.scan-cell.pass {
+  background: #e4efe4;
+}
+.scan-cell.pass b {
+  color: #2f6b46;
+}
+.scan-cell.fail b {
+  color: #8a5a45;
+}
+.scan-cell.waiting b,
+.scan-cell.error b {
+  color: #8b9481;
+}
+.scan-cell.chosen {
+  outline: 2px solid #ed603c;
+  outline-offset: -2px;
+}
+.scan-grid .micro-note {
+  padding: 10px 12px;
+  margin: 0;
+  border-top: 1px solid #e3e4da;
+}
+@media (max-width: 700px) {
+  .scan-desk {
+    grid-template-columns: 1fr;
+  }
+  .scan-row {
+    grid-template-columns: 48px repeat(4, 1fr);
+  }
+  .product .scan-cell {
+    padding: 8px 6px;
+  }
+}

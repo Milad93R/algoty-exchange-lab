@@ -102,6 +102,11 @@ public class ProductApi {
     return missions.manual(auth.user(s), b);
   }
 
+  @PostMapping("/missions/{id}/scan")
+  public Object scan(@RequestHeader("X-Session") String s, @PathVariable String id) {
+    return missions.scan(auth.user(s), id);
+  }
+
   @PostMapping("/missions/{id}/replay")
   public Object replay(
       @RequestHeader("X-Session") String s,

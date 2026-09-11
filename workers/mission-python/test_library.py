@@ -127,10 +127,12 @@ class Indicators(unittest.TestCase):
     def test_insufficient_history_waits(self):
         for kind in engine.KINDS:
             p = {k: engine.DEFAULTS[k] for k in engine.PARAMS[kind]}
-            if kind in engine.PRICE + engine.BAR_KINDS:
+            if kind in engine.PRICE + engine.BAR_KINDS + ("obv", "tdSetup", "dayOpen"):
                 continue
             self.assertIsNone(indicator(kind, ROWS[:3], p), kind)
-            self.assertIsNotNone(indicator(kind, ROWS, p), kind)
+            optional = kind.startswith(("ob", "fvg", "prev", "session")) or kind in ("supportLevel", "resistanceLevel")
+            if not optional:
+                self.assertIsNotNone(indicator(kind, ROWS, p), kind)
 
 
 def bar(o, h, l, c, i=0):

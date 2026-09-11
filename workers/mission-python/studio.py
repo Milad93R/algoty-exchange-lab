@@ -184,3 +184,28 @@ def replay(plan, ctx, slippageBps=5):
         "slippageBps": slippageBps,
         "model": "Next candle open, 0.1% fees each fill, configured slippage. Unliquidated holdings marked at close. No depth or queue model. Recent 500-candle window with 220 warmup bars.",
     }
+
+
+def scan(plan):
+    """Evaluate the plan's entry and exit rules right now on every market and timeframe.
+    Mirrors Drakdoo's exchange probe: same rules, many pairs, current closed candle only."""
+    grid = []
+    for symbol in engine.SYMBOLS:
+        for tf in engine.TF:
+            p = dict(plan, symbol=symbol, timeframe=tf)
+            cell = {"symbol": symbol, "timeframe": tf}
+            try:
+                ctx = contexts(p)
+                rows = ctx[symbol + ":" + tf]
+                bar = rows[-1]["time"] + engine.TF[tf] - 1
+                ev = engine.Evaluator(p, ctx, bar)
+                entry = ev.node(plan["flow"]["entry"])
+                exit_ = ev.node(plan["flow"]["exit"])
+                status = lambda v: "waiting" if v is None else "pass" if v else "fail"
+                cell.update(
+                    entry=status(entry), exit=status(exit_), barTime=bar, close=rows[-1]["close"], trace=ev.trace,
+                )
+            except Exception as err:
+                cell.update(entry="error", exit="error", error=str(err)[:120])
+            grid.append(cell)
+    return {"scannedAt": int(time.time() * 1000), "cells": grid, "flowVersion": 1}

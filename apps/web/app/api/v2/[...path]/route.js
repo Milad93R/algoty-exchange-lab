@@ -4,7 +4,7 @@ async function forward(req, { params }) {
   const { path } = await params;
   const route = path.join("/");
   if (
-    !/^(account\/(?:profile|password|forgot|reset|email-code|email|sessions|sessions\/revoke)|session|me|email-code|register|login|recover|logout|portfolio|orders|orders\/[a-zA-Z0-9-]+\/cancel|missions|missions\/manual|missions\/[a-zA-Z0-9-]+(?:\/(?:edit|control|instruction|branch|replay))?|comparisons\/[a-zA-Z0-9-]+\/(?:start|share)|shared\/[a-zA-Z0-9_-]+)$/.test(
+    !/^(account\/(?:profile|password|forgot|reset|email-code|email|sessions|sessions\/revoke)|session|me|email-code|register|login|recover|logout|portfolio|orders|orders\/[a-zA-Z0-9-]+\/cancel|missions|missions\/manual|missions\/[a-zA-Z0-9-]+(?:\/(?:edit|control|instruction|branch|replay|scan))?|comparisons\/[a-zA-Z0-9-]+\/(?:start|share)|shared\/[a-zA-Z0-9_-]+)$/.test(
       route,
     )
   )

@@ -1654,3 +1654,29 @@
 .account-settings>section{border-top:1px solid #c8cebf;padding:28px 0;margin-top:26px}.account-settings h3{font-size:24px;letter-spacing:-.7px;font-weight:500;margin:14px 0 20px}.account-session{display:flex;justify-content:space-between;gap:12px;padding:18px 0;border-bottom:1px solid #d7dbd0;margin-bottom:15px}.account-session>div{display:flex;flex-direction:column;gap:7px;min-width:0}.account-session span{font-size:11px;color:#65705e}.account-session strong{font-weight:500;font-size:13px}.account-session button{align-self:center}.account-email{overflow-wrap:anywhere}.account-settings input{min-width:0}.account-settings .overline{font-size:9px}
 
 .google-signin .google-button{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;background:#fff;color:#20231f;border:1px solid #a8ada1;min-height:44px;font-size:14px}.google-button svg{flex-shrink:0}.auth-divider{text-align:center;font-size:11px!important;margin:20px 0!important;color:#67715d}.google-signin{margin-bottom:20px}
+
+.mode-toggle {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid var(--line);
+  padding: 14px 16px;
+  margin: 18px 0 4px;
+  background: #faf9f4;
+  cursor: pointer;
+}
+.mode-toggle input {
+  margin-top: 3px;
+}
+.mode-toggle b {
+  font-weight: 600;
+  display: block;
+  font-size: 13px;
+}
+.mode-toggle small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin-top: 4px;
+}
