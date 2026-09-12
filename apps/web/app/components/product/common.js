@@ -2,50 +2,14 @@
 import Link from 'next/link';
 import Brand from "../Brand";
 import { useEffect, useState, useRef } from "react";
+export { api } from "./client-api";
+export { useUser } from "./UserSession";
 export const fmt = (n, d = 2) =>
   Number(n || 0).toLocaleString("en-US", {
     minimumFractionDigits: d,
     maximumFractionDigits: d,
   });
 export const usd = (n) => "$" + fmt(Number(n) / 1e8);
-export async function api(path, body) {
-  const r = await fetch("/api/v2/" + path, {
-    method: body === undefined ? "GET" : "POST",
-    headers: { "Content-Type": "application/json" },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    cache: "no-store",
-  });
-  let d;
-  try {
-    d = await r.json();
-  } catch {
-    throw Error(
-      r.status === 429
-        ? "Too many requests. Wait a moment and try again."
-        : "Connection unavailable. Please retry shortly.",
-    );
-  }
-  if (!r.ok) throw Error(d.error || d.message || "Request failed");
-  return d;
-}
-export function useUser() {
-  const [user, setUser] = useState(null),
-    [error, setError] = useState("");
-  useEffect(() => {
-    let live = true;
-    api("me")
-      .then((user) => ({ user }))
-      .catch(() => api("session", {}))
-      .then((d) => {
-        if (live) setUser(d.user);
-      })
-      .catch((e) => setError(e.message));
-    return () => {
-      live = false;
-    };
-  }, []);
-  return { user, setUser, error };
-}
 export function useMarket(symbol) {
   const [market, setMarket] = useState(null);
   useEffect(() => {
