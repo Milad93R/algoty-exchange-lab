@@ -1,7 +1,9 @@
 "use client";
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import MissionCanvas from "./MissionCanvas";
-import { api, Curve, fmt } from "./common";
+import { api, Curve, fmt, useViewState } from "./common";
+import { dataKeys } from "./server-state";
 import {
   GROUPS,
   KINDS,
@@ -693,24 +695,35 @@ export function TradeList({ replay }) {
 }
 
 export default function Studio({ mission, onEdit }) {
-  const [selected, setSelected] = useState(null),
-    [replay, setReplay] = useState(null),
-    [step, setStep] = useState(0),
+  const planKey = useMemo(() => JSON.stringify(mission.plan), [mission.plan]);
+  const [selected, setSelected] = useViewState(
+      `studio.${mission.id}.selected`,
+      null,
+    ),
+    [step, setStep] = useViewState(`studio.${mission.id}.step`, 0),
     [playing, setPlaying] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [slip, setSlip] = useState(5),
-    [scan, setScan] = useState(null),
-    [scanCell, setScanCell] = useState(null),
+    [slip, setSlip] = useViewState(`studio.${mission.id}.slippage`, 5),
+    [scanCell, setScanCell] = useViewState(
+      `studio.${mission.id}.scan-cell`,
+      null,
+    ),
     [scanning, setScanning] = useState(false),
-    [mode, setMode] = useState("live");
-  useEffect(() => {
-    setReplay(null);
-    setScan(null);
-    setScanCell(null);
-    setSelected(null);
-    setMode("live");
-  }, [mission.id, JSON.stringify(mission.plan)]);
+    [mode, setMode] = useViewState(`studio.${mission.id}.mode`, "live");
+  const queryClient = useQueryClient();
+  const replayKey = dataKeys.replay(mission.id, planKey, Number(slip));
+  const scanKey = dataKeys.scan(mission.id, planKey);
+  const { data: replay = null } = useQuery({
+    queryKey: replayKey,
+    queryFn: () => Promise.resolve(null),
+    enabled: false,
+  });
+  const { data: scan = null } = useQuery({
+    queryKey: scanKey,
+    queryFn: () => Promise.resolve(null),
+    enabled: false,
+  });
   useEffect(() => {
     if (!playing || !replay) return;
     const t = setInterval(
@@ -748,7 +761,7 @@ export default function Studio({ mission, onEdit }) {
     setError("");
     try {
       const d = await api(`missions/${mission.id}/scan`, {});
-      setScan(d);
+      queryClient.setQueryData(scanKey, d);
       const first = d.cells.find((c) => c.entry === "pass") || d.cells[0];
       if (first) setScanCell(first.symbol + ":" + first.timeframe);
       setMode("scan");
@@ -765,7 +778,7 @@ export default function Studio({ mission, onEdit }) {
       const d = await api(`missions/${mission.id}/replay`, {
         slippageBps: Number(slip),
       });
-      setReplay(d);
+      queryClient.setQueryData(replayKey, d);
       setStep(0);
       setMode("replay");
     } catch (e) {

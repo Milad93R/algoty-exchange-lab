@@ -1,12 +1,13 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
   useUser,
   useMarket,
+  useViewState,
   Shell,
   Candles,
   fmt,
-} from "../components/product/common";
+} from "../../components/product/common";
 function Market({ symbol, watched, toggle }) {
   const m = useMarket(symbol);
   return (
@@ -41,10 +42,12 @@ function Market({ symbol, watched, toggle }) {
 }
 export default function Markets() {
   const { user } = useUser();
-  const [watch, setWatch] = useState([]);
+  const [savedWatch, setWatch] = useViewState("markets.watchlist", []);
+  const watch = Array.isArray(savedWatch) ? savedWatch : [];
   useEffect(() => {
     try {
-      setWatch(JSON.parse(localStorage.getItem("algoty-watchlist") || "[]"));
+      const saved = JSON.parse(localStorage.getItem("algoty-watchlist") || "[]");
+      if (Array.isArray(saved)) setWatch(saved);
     } catch {}
   }, []);
   function toggle(s) {

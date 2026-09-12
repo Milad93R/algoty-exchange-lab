@@ -1,50 +1,59 @@
 "use client";
 import Link from 'next/link';
 import { useEffect, useState, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   api,
   useUser,
   useMarket,
+  useViewState,
   useModal,
   Shell,
   Notice,
   Candles,
   fmt,
   usd,
-} from "../components/product/common";
+} from "../../components/product/common";
+import {
+  dataKeys,
+  usePortfolio,
+} from "../../components/product/server-state";
+
+const symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT"];
+const portfolioTabs = ["orders", "fills", "positions", "balances", "ledger"];
+
 export default function Trade() {
   const { user, error } = useUser();
-  const [symbol, setSymbol] = useState("BTCUSDT"),
-    [tf, setTf] = useState("1m"),
-    [portfolio, setPortfolio] = useState(null),
-    [side, setSide] = useState("BUY"),
-    [kind, setKind] = useState("MARKET"),
-    [price, setPrice] = useState(""),
-    [quantity, setQuantity] = useState("0.001"),
-    [tab, setTab] = useState("orders"),
+  const [savedSymbol, setSymbol] = useViewState("trade.symbol", "BTCUSDT"),
+    [savedTf, setTf] = useViewState("trade.timeframe", "1m"),
+    [savedSide, setSide] = useViewState("trade.side", "BUY"),
+    [savedKind, setKind] = useViewState("trade.kind", "MARKET"),
+    [price, setPrice] = useViewState("trade.price", ""),
+    [quantity, setQuantity] = useViewState("trade.quantity", "0.001"),
+    [savedTab, setTab] = useViewState("trade.portfolio-tab", "orders"),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [detail, setDetail] = useState(null);
+  const symbol = symbols.includes(savedSymbol) ? savedSymbol : "BTCUSDT";
+  const tf = ["1m", "5m"].includes(savedTf) ? savedTf : "1m";
+  const side = ["BUY", "SELL"].includes(savedSide) ? savedSide : "BUY";
+  const kind = ["MARKET", "LIMIT"].includes(savedKind) ? savedKind : "MARKET";
+  const tab = portfolioTabs.includes(savedTab) ? savedTab : "orders";
+  const queryClient = useQueryClient();
+  const portfolioQuery = usePortfolio(user?.id);
+  const portfolio = portfolioQuery.data || null;
   const key = useRef(null);
   useModal(!!detail, () => setDetail(null));
   const market = useMarket(symbol);
   useEffect(() => {
     const q = new URLSearchParams(location.search).get("symbol");
-    if (["BTCUSDT", "ETHUSDT", "SOLUSDT"].includes(q)) setSymbol(q);
+    if (symbols.includes(q)) setSymbol(q);
   }, []);
   async function refresh() {
-    try {
-      setPortfolio(await api("portfolio"));
-    } catch (e) {
-      setNotice(e.message);
-    }
+    const result = await portfolioQuery.refetch();
+    if (result.error) throw result.error;
+    return result.data;
   }
-  useEffect(() => {
-    if (!user) return;
-    refresh();
-    const t = setInterval(refresh, 3000);
-    return () => clearInterval(t);
-  }, [user]);
   useEffect(() => {
     key.current = null;
   }, [symbol, side, kind, price, quantity]);
@@ -74,7 +83,9 @@ export default function Trade() {
       });
       key.current = null;
       setNotice("Order accepted. Follow its fills below.");
-      await refresh();
+      await queryClient.invalidateQueries({
+        queryKey: dataKeys.portfolio(user.id),
+      });
     } catch (e) {
       setNotice(e.message);
     } finally {
@@ -106,7 +117,10 @@ export default function Trade() {
           <Link href="/agents">Delegate to an agent ↗</Link>
         </div>
       </div>
-      <Notice text={notice || error} clear={() => setNotice("")} />
+      <Notice
+        text={notice || error || portfolioQuery.error?.message}
+        clear={() => setNotice("")}
+      />
       <div className="market-ribbon">
         <div className="symbol-select">
           <span className="coin-symbol">
@@ -120,7 +134,7 @@ export default function Trade() {
               setPrice("");
             }}
           >
-            {["BTCUSDT", "ETHUSDT", "SOLUSDT"].map((s) => (
+            {symbols.map((s) => (
               <option key={s} value={s}>
                 {s.replace("USDT", " / USDT")}
               </option>

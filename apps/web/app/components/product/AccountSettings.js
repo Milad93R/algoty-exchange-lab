@@ -1,17 +1,20 @@
 'use client';
 import {useState,useEffect} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 import GoogleSignIn from './GoogleSignIn';
 import ForgotPassword from './ForgotPassword';
 import {api} from './common';
+import {dataKeys,useAccountSessions} from './server-state';
 export default function AccountSettings({user,setUser,setCode,setNotice}){
- const [busy,setBusy]=useState(false),[pending,setPending]=useState(null),[sessions,setSessions]=useState([]),[settingPassword,setSettingPassword]=useState(false);
- const refresh=()=>api('account/sessions').then(setSessions).catch(e=>setNotice(e.message));
- useEffect(()=>{refresh()},[]);
+ const [busy,setBusy]=useState(false),[pending,setPending]=useState(null),[settingPassword,setSettingPassword]=useState(false);
+ const queryClient=useQueryClient(),sessionsQuery=useAccountSessions(user?.id),sessions=sessionsQuery.data||[];
+ const refresh=async()=>{const result=await sessionsQuery.refetch();if(result.error)throw result.error;return result.data};
+ useEffect(()=>{if(sessionsQuery.error)setNotice(sessionsQuery.error.message)},[sessionsQuery.error,setNotice]);
  async function action(e,route){e.preventDefault();const form=e.currentTarget;const data=Object.fromEntries(new FormData(form));setBusy(true);try{
   if(route==='account/password'&&data.password!==data.confirmPassword)throw Error('The new passwords do not match.');
   const d=await api(route,route==='account/email'?{...pending,...data}:data);
   if(route==='account/email-code'){setPending({...data,challenge:d.challenge});setNotice('Check your new email address for the verification code.');return}
-  if(d.user)setUser(d.user);if(d.recoveryCode)setCode(d.recoveryCode);setNotice(route==='account/password'?'Password changed. Other sessions signed out. Save your new recovery code.':route==='account/email'?'Email updated and verified. Other sessions signed out.':'Profile updated.');form.reset();setPending(null);refresh();
+  if(d.user)setUser(d.user);if(d.recoveryCode)setCode(d.recoveryCode);setNotice(route==='account/password'?'Password changed. Other sessions signed out. Save your new recovery code.':route==='account/email'?'Email updated and verified. Other sessions signed out.':'Profile updated.');form.reset();setPending(null);await queryClient.invalidateQueries({queryKey:dataKeys.accountSessions(user.id)});
  }catch(e){setNotice(e.message)}finally{setBusy(false)}}
  return <div className="account-settings">
  <section><span className="overline">01 / PROFILE</span><h3>Your details</h3><form onSubmit={e=>action(e,'account/profile')}><label>Display name<input name="name" defaultValue={user.name} required minLength={2} maxLength={60} autoComplete="name"/></label><button className="secondary" disabled={busy}>Save profile</button></form></section>

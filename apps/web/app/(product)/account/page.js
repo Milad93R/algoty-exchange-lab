@@ -1,11 +1,11 @@
 "use client";
 import Link from 'next/link';
-import GoogleSignIn from "../components/product/GoogleSignIn";
-import AccountSettings from "../components/product/AccountSettings";
-import ForgotPassword from "../components/product/ForgotPassword";
-import {BrandMark} from "../components/Brand";
+import GoogleSignIn from "../../components/product/GoogleSignIn";
+import AccountSettings from "../../components/product/AccountSettings";
+import ForgotPassword from "../../components/product/ForgotPassword";
+import {BrandMark} from "../../components/Brand";
 import { useState, useEffect } from "react";
-import { api, useUser, Shell, Notice } from "../components/product/common";
+import { api, useUser, Shell, Notice } from "../../components/product/common";
 export default function Account() {
   const { user, setUser, error } = useUser();
   const [mode, setMode] = useState("register"),

@@ -2,26 +2,74 @@
 import Link from 'next/link';
 import Brand from "../Brand";
 import { useEffect, useState, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { dataKeys } from "./server-state";
 export { api } from "./client-api";
 export { useUser } from "./UserSession";
+export { useViewState } from "./AppProviders";
 export const fmt = (n, d = 2) =>
   Number(n || 0).toLocaleString("en-US", {
     minimumFractionDigits: d,
     maximumFractionDigits: d,
   });
 export const usd = (n) => "$" + fmt(Number(n) / 1e8);
-export function useMarket(symbol) {
-  const [market, setMarket] = useState(null);
-  useEffect(() => {
-    setMarket(null);
+
+const marketStreams = new Map();
+function subscribeMarket(symbol, queryClient) {
+  let stream = marketStreams.get(symbol);
+  if (stream && stream.queryClient !== queryClient) {
+    clearTimeout(stream.closeTimer);
+    stream.source.close();
+    marketStreams.delete(symbol);
+    stream = null;
+  }
+  if (!stream) {
     const source = new EventSource("/api/live?symbol=" + symbol);
-    source.onmessage = (e) => {
-      const d = JSON.parse(e.data);
-      setMarket((old) => (d.error ? { ...old, ...d } : d));
+    stream = { source, queryClient, subscribers: 0, closeTimer: null };
+    marketStreams.set(symbol, stream);
+    source.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        queryClient.setQueryData(dataKeys.market(symbol), (current) =>
+          data.error ? { ...current, ...data } : data,
+        );
+      } catch {
+        queryClient.setQueryData(dataKeys.market(symbol), (current) => ({
+          ...current,
+          stale: true,
+        }));
+      }
     };
-    source.onerror = () => setMarket((old) => ({ ...old, stale: true }));
-    return () => source.close();
-  }, [symbol]);
+    source.onerror = () =>
+      queryClient.setQueryData(dataKeys.market(symbol), (current) => ({
+        ...current,
+        stale: true,
+      }));
+  }
+  clearTimeout(stream.closeTimer);
+  stream.subscribers += 1;
+  return () => {
+    stream.subscribers -= 1;
+    if (stream.subscribers > 0) return;
+    stream.closeTimer = setTimeout(() => {
+      if (stream.subscribers > 0) return;
+      stream.source.close();
+      marketStreams.delete(symbol);
+    }, 2_000);
+  };
+}
+
+export function useMarket(symbol) {
+  const queryClient = useQueryClient();
+  const { data: market = null } = useQuery({
+    queryKey: dataKeys.market(symbol),
+    queryFn: () => Promise.resolve(null),
+    enabled: false,
+    gcTime: 30 * 60 * 1000,
+  });
+  useEffect(() => {
+    return subscribeMarket(symbol, queryClient);
+  }, [symbol, queryClient]);
   return market;
 }
 export function Shell({ active, children, user }) {

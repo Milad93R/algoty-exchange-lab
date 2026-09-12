@@ -1,21 +1,29 @@
 "use client";
 import Link from 'next/link';
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Studio, {
   FlowEditor,
   template,
   starter,
-} from "../components/product/studio";
+} from "../../components/product/studio";
 import {
   api,
   useUser,
+  useViewState,
   useModal,
   Shell,
   Notice,
   Curve,
   fmt,
   usd,
-} from "../components/product/common";
+} from "../../components/product/common";
+import {
+  dataKeys,
+  useComparison,
+  useMission,
+  useMissions,
+} from "../../components/product/server-state";
 const strategies = {
   CUSTOM: "Composable flow",
   BREAKOUT: "Range breakout",
@@ -247,10 +255,12 @@ function PlanEditor({ plan, onSave, busy }) {
 }
 export default function Agents() {
   const { user, error } = useUser();
-  const [list, setList] = useState([]),
-    [selected, setSelected] = useState(null),
-    [m, setM] = useState(null),
-    [brief, setBrief] = useState(""),
+  const [selected, setSelected] = useViewState("agents.selected", null),
+    [comparisonGroup, setComparisonGroup] = useViewState(
+      "agents.comparison",
+      null,
+    ),
+    [brief, setBrief] = useViewState("agents.brief", ""),
     [busy, setBusy] = useState(false),
     [notice, setNotice] = useState(""),
     [editor, setEditor] = useState(false),
@@ -260,39 +270,58 @@ export default function Agents() {
     [variation, setVariation] = useState(
       "Wait for two confirming candles before entering; keep the same market and allocation.",
     ),
-    [comparison, setComparison] = useState(null),
     [share, setShare] = useState("");
+  const queryClient = useQueryClient();
+  const listQuery = useMissions(user?.id);
+  const missionQuery = useMission(user?.id, selected);
+  const comparisonQuery = useComparison(user?.id, comparisonGroup);
+  const list = listQuery.data || [];
+  const m = missionQuery.data || null;
+  const comparison = comparisonQuery.data || null;
+  useEffect(() => {
+    if (!listQuery.isSuccess || listQuery.isFetching) return;
+    if (selected && !list.some((mission) => mission.id === selected)) {
+      setSelected(null);
+    }
+    if (
+      comparisonGroup &&
+      !list.some((mission) => mission.group_id === comparisonGroup)
+    ) {
+      setComparisonGroup(null);
+    }
+  }, [listQuery.isSuccess, listQuery.isFetching, list, selected, comparisonGroup]);
   useModal(!!(editor || branch || preview), () => {
     setEditor(false);
     setBranch(false);
     setPreview(null);
   });
   async function refresh() {
-    const rows = await api("missions");
-    setList(rows);
-    if (selected) setM(await api("missions/" + selected));
-    if (comparison) {
-      const members = rows.filter((x) => x.group_id === comparison.group);
-      setComparison({
-        group: comparison.group,
-        agents: await Promise.all(members.map((x) => api("missions/" + x.id))),
-      });
+    if (!user?.id) return;
+    const invalidations = [
+      queryClient.invalidateQueries({ queryKey: dataKeys.missions(user.id) }),
+    ];
+    if (selected)
+      invalidations.push(
+        queryClient.invalidateQueries({
+          queryKey: dataKeys.mission(user.id, selected),
+        }),
+      );
+    if (comparisonGroup)
+      invalidations.push(
+        queryClient.invalidateQueries({
+          queryKey: dataKeys.comparison(user.id, comparisonGroup),
+        }),
+      );
+    await Promise.all(invalidations);
+  }
+  function cacheMission(mission) {
+    if (user?.id && mission?.id) {
+      queryClient.setQueryData(
+        dataKeys.mission(user.id, mission.id),
+        mission,
+      );
     }
   }
-  useEffect(() => {
-    if (!user) return;
-    let alive = true;
-    const load = () =>
-      refresh().catch((e) => {
-        if (alive) setNotice(e.message);
-      });
-    load();
-    const t = setInterval(load, 6000);
-    return () => {
-      alive = false;
-      clearInterval(t);
-    };
-  }, [user, selected, comparison?.group]);
   useEffect(() => {
     if (!editor && !branch && !preview) return;
     const handler = (e) => {
@@ -317,56 +346,50 @@ export default function Agents() {
     }
   }
   async function choose(id) {
-    setComparison(null);
+    setComparisonGroup(null);
     setShare("");
     setSelected(id);
-    setM(null);
-    if (id)
-      try {
-        setM(await api("missions/" + id));
-      } catch (e) {
-        setNotice(e.message);
-      }
   }
   async function draft(e) {
     e.preventDefault();
     run(async () => {
       const d = await api("missions", { brief });
+      cacheMission(d);
       setSelected(d.id);
-      setM(d);
-      setList(await api("missions"));
+      setComparisonGroup(null);
+      await queryClient.invalidateQueries({
+        queryKey: dataKeys.missions(user.id),
+      });
       setEditor(true);
       setNotice("Your AI plan is ready for review. It is not trading yet.");
     });
   }
   async function control(action) {
     run(async () => {
-      setM(await api("missions/" + m.id + "/control", { action }));
-      setList(await api("missions"));
+      const d = await api("missions/" + m.id + "/control", { action });
+      cacheMission(d);
+      await queryClient.invalidateQueries({
+        queryKey: dataKeys.missions(user.id),
+      });
     });
   }
   async function savePlan(p) {
     run(async () => {
       const d = await api("missions/" + m.id + "/edit", p);
-      setM(d);
+      cacheMission(d);
       setSelected(d.id);
       setEditor(false);
       setPreview(null);
-      setList(await api("missions"));
+      await queryClient.invalidateQueries({
+        queryKey: dataKeys.missions(user.id),
+      });
       setNotice("Plan saved. Activate when you are ready.");
     });
   }
   async function loadComparison(group) {
     setSelected(null);
-    setM(null);
     setShare("");
-    run(async () => {
-      const rows = list.filter((x) => x.group_id === group);
-      setComparison({
-        group,
-        agents: await Promise.all(rows.map((x) => api("missions/" + x.id))),
-      });
-    });
+    setComparisonGroup(group);
   }
   const groups = [...new Set(list.map((x) => x.group_id).filter(Boolean))];
   return (
@@ -389,7 +412,16 @@ export default function Agents() {
           <Link href="/trade">Back to exchange ↗</Link>
         </div>
       </div>
-      <Notice text={notice || error} clear={() => setNotice("")} />
+      <Notice
+        text={
+          notice ||
+          error ||
+          listQuery.error?.message ||
+          missionQuery.error?.message ||
+          comparisonQuery.error?.message
+        }
+        clear={() => setNotice("")}
+      />
       <div className="mission-layout">
         <aside className="mission-sidebar">
           <button
@@ -434,7 +466,7 @@ export default function Agents() {
           )}
         </aside>
         <div className="mission-canvas">
-          {!selected && !comparison && (
+          {!selected && !comparisonGroup && (
             <>
               <section className="composer">
                 <span className="overline">IDEAS INTO ACTION</span>
@@ -493,9 +525,11 @@ export default function Agents() {
                       onClick={() =>
                         run(async () => {
                           const d = await api("missions/manual", starter(kind));
+                          cacheMission(d);
                           setSelected(d.id);
-                          setM(d);
-                          setList(await api("missions"));
+                          await queryClient.invalidateQueries({
+                            queryKey: dataKeys.missions(user.id),
+                          });
                           setEditor(true);
                         })
                       }
@@ -519,9 +553,11 @@ export default function Agents() {
                             "missions/manual",
                             JSON.parse(await f.text()),
                           );
+                          cacheMission(d);
                           setSelected(d.id);
-                          setM(d);
-                          setList(await api("missions"));
+                          await queryClient.invalidateQueries({
+                            queryKey: dataKeys.missions(user.id),
+                          });
                           setEditor(true);
                         });
                       }}
@@ -559,6 +595,9 @@ export default function Agents() {
           )}
           {selected && !m && (
             <div className="chart-skeleton">Opening your mission…</div>
+          )}
+          {comparisonGroup && !comparison && (
+            <div className="chart-skeleton">Opening your comparison…</div>
           )}
           {m && !comparison && (
             <>
@@ -979,11 +1018,17 @@ export default function Agents() {
                       const d = await api("missions/" + m.id + "/branch", {
                         brief: variation,
                       });
-                      setComparison(d);
+                      queryClient.setQueryData(
+                        dataKeys.comparison(user.id, d.group),
+                        d,
+                      );
+                      d.agents?.forEach(cacheMission);
+                      setComparisonGroup(d.group);
                       setSelected(null);
-                      setM(null);
                       setBranch(false);
-                      setList(await api("missions"));
+                      await queryClient.invalidateQueries({
+                        queryKey: dataKeys.missions(user.id),
+                      });
                     });
                   }}
                 >
