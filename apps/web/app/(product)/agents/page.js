@@ -393,7 +393,7 @@ export default function Agents() {
   }
   const groups = [...new Set(list.map((x) => x.group_id).filter(Boolean))];
   return (
-    <Shell active="agents" user={user}>
+    <Shell user={user}>
       <div className="workspace-heading">
         <div>
           <span className="overline">MISSION CONTROL</span>

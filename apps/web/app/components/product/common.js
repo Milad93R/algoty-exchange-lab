@@ -1,5 +1,6 @@
 "use client";
 import Link from 'next/link';
+import { usePathname } from "next/navigation";
 import Brand from "../Brand";
 import { useEffect, useState, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -72,20 +73,23 @@ export function useMarket(symbol) {
   }, [symbol, queryClient]);
   return market;
 }
-export function Shell({ active, children, user }) {
+export function Shell({ children, user }) {
+  const pathname = usePathname();
   return (
     <div className="product">
       <header className="product-nav">
         <Brand/>
         <span className="product-mode">LIVE MARKET / PAPER CAPITAL</span>
         <nav>
-          <Link className={active === "trade" ? "selected" : ""} href="/trade">
+          <Link className={pathname === "/trade" ? "selected" : ""} href="/trade">
             Exchange
           </Link>
-          <Link className={active === "agents" ? "selected" : ""} href="/agents">
+          <Link className={pathname === "/agents" ? "selected" : ""} href="/agents">
             AI missions
           </Link>
-          <Link href="/markets">Markets</Link>
+          <Link className={pathname === "/markets" ? "selected" : ""} href="/markets">
+            Markets
+          </Link>
         </nav>
         <Link className="account-link" href="/account">
           <span>{user?.name?.slice(0, 1) || "↗"}</span>

@@ -95,7 +95,7 @@ export default function Trade() {
   const orders = portfolio?.orders || [],
     fills = portfolio?.fills || [];
   return (
-    <Shell active="trade" user={user}>
+    <Shell user={user}>
       <div className="workspace-heading">
         <div>
           <span className="overline">THE EXCHANGE</span>
