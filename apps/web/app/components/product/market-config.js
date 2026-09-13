@@ -12,6 +12,7 @@ export const CHART_TIMEFRAMES = Object.freeze([
   "1h",
   "4h",
   "1d",
+  "1w",
 ]);
 
 export const CHART_TIMEFRAME_DETAILS = Object.freeze({
@@ -22,4 +23,5 @@ export const CHART_TIMEFRAME_DETAILS = Object.freeze({
   "1h": { durationMs: 3_600_000, refreshMs: 30_000, cacheSeconds: 30 },
   "4h": { durationMs: 14_400_000, refreshMs: 60_000, cacheSeconds: 60 },
   "1d": { durationMs: 86_400_000, refreshMs: 300_000, cacheSeconds: 300 },
+  "1w": { durationMs: 604_800_000, refreshMs: 300_000, cacheSeconds: 300 },
 });

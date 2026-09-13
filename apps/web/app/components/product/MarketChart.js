@@ -88,13 +88,14 @@ function movingAverage(rows, period = 20) {
 
 function chartTime(time, timeframe) {
   const date = new Date(Number(time) * 1000);
+  const dateOnly = timeframe === "1d" || timeframe === "1w";
   return date.toLocaleString("en-US", {
     timeZone: "UTC",
     month: "short",
     day: "numeric",
-    year: timeframe === "1d" ? "numeric" : undefined,
-    hour: timeframe === "1d" ? undefined : "2-digit",
-    minute: timeframe === "1d" ? undefined : "2-digit",
+    year: dateOnly ? "numeric" : undefined,
+    hour: dateOnly ? undefined : "2-digit",
+    minute: dateOnly ? undefined : "2-digit",
     hour12: false,
   });
 }
@@ -172,7 +173,7 @@ export default function MarketChart({
       },
       timeScale: {
         borderColor: "#d6d9d0",
-        timeVisible: timeframe !== "1d",
+        timeVisible: timeframe !== "1d" && timeframe !== "1w",
         secondsVisible: false,
         rightOffset: 8,
         barSpacing: 7,

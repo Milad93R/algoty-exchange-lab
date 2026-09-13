@@ -25,7 +25,7 @@ Chosen after successful REST and WS tests from yusam's IP. Public market-only Bi
 - REST: `https://data-api.binance.vision/api/v3/klines`
 - WS: `wss://data-stream.binance.vision:443/stream`
 - Streams per symbol: `depth20@100ms`, `aggTrade`, `kline_1m`.
-- The Exchange chart opens with 1,000 REST candles for 1m, 5m, 15m, 30m, 1h, 4h and 1d. Reaching the left edge requests the next Binance page with `endTime`, merges it into the symbol/timeframe TanStack Query cache, and preserves the visible time range. Live pages use interval-aware shared-cache windows; closed historical pages are cached for one hour.
+- The Exchange chart opens with up to 1,000 REST candles for 1m, 5m, 15m, 30m, 1h, 4h, 1d and 1w. Reaching the left edge requests the next Binance page with `endTime`, merges it into the symbol/timeframe TanStack Query cache, and preserves the visible time range. Live pages use interval-aware shared-cache windows; closed historical pages are cached for one hour.
 - Source documentation: [Binance public market-only endpoints](https://github.com/binance/binance-spot-api-docs/blob/master/faqs/market_data_only.md), [Binance WebSocket streams](https://github.com/binance/binance-spot-api-docs/blob/master/web-socket-streams.md).
 - Alternatives reachable during this review: [Kraken order book](https://docs-legacy.kraken.com/api/docs/websocket-v2/book/) and [Coinbase channels](https://docs.cdp.coinbase.com/exchange/websocket-feed/channels). No automatic provider switching: do not silently merge liquidity models.
 

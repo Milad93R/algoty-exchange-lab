@@ -5,7 +5,7 @@ const { chromium } = require(
 const assert = require("node:assert/strict");
 
 const base = (process.env.DEMO_URL || "https://algoty.com").replace(/\/$/, "");
-const timeframes = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"];
+const timeframes = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"];
 
 (async () => {
   const browser = await chromium.launch({ headless: true, args: ["--no-sandbox"] });
@@ -78,8 +78,13 @@ const timeframes = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"];
 
     assert(endpointResults.every((row) => row.status === 200));
     assert(endpointResults.every((row) => row.returnedTimeframe === row.timeframe));
-    assert(endpointResults.every((row) => row.candles === 1_000 && row.valid));
-    assert(endpointResults.every((row) => row.hasMore === true));
+    assert(
+      endpointResults.every((row) =>
+        row.timeframe === "1w"
+          ? row.candles >= 400 && row.valid && row.hasMore === false
+          : row.candles === 1_000 && row.valid && row.hasMore === true,
+      ),
+    );
     assert.equal(olderPage.status, 200);
     assert.equal(olderPage.candles, 1_000);
     assert(olderPage.newest < firstHour.oldest);
@@ -97,7 +102,8 @@ const timeframes = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"];
           const chart = document.querySelector(
             `[data-testid="market-chart"][data-timeframe="${value}"]`,
           );
-          return Number(chart?.dataset.loadedCandles || 0) >= 1_000;
+          const minimum = value === "1w" ? 400 : 1_000;
+          return Number(chart?.dataset.loadedCandles || 0) >= minimum;
         },
         timeframe,
         { timeout: 30_000 },
@@ -152,14 +158,14 @@ const timeframes = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"];
     assert((await latestButton.getAttribute("class")).includes("is-away"));
     await latestButton.click();
 
-    await picker.getByRole("button", { name: "1d", exact: true }).click();
+    await picker.getByRole("button", { name: "1w", exact: true }).click();
     await page.getByRole("link", { name: "Markets", exact: true }).first().click();
     await page.getByRole("link", { name: "Exchange", exact: true }).first().click();
     await page.waitForFunction(
       () =>
         document
           .querySelector('[aria-label="Chart timeframe"] button[aria-pressed="true"]')
-          ?.textContent?.trim() === "1d",
+          ?.textContent?.trim() === "1w",
       null,
       { timeout: 30_000 },
     );
@@ -180,13 +186,17 @@ const timeframes = ["1m", "5m", "15m", "30m", "1h", "4h", "1d"];
     });
     await page.screenshot({ path: "/tmp/algoty-interactive-chart-mobile.png", fullPage: true });
 
-    assert(chartResults.every((row) => row.candles >= 1_000));
+    assert(
+      chartResults.every((row) =>
+        row.timeframe === "1w" ? row.candles >= 400 : row.candles >= 1_000,
+      ),
+    );
     assert(chartResults.every((row) => row.canvases >= 2));
     assert(chartResults.every((row) => row.pressed === "true"));
     assert.equal(mobile.documentOverflow, false);
     assert.equal(mobile.chartOverflow, false);
     assert(mobile.chartCanvases >= 2);
-    assert.equal(mobile.selected, "1d");
+    assert.equal(mobile.selected, "1w");
     assert.deepEqual(errors, []);
 
     console.log(
