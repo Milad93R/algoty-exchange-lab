@@ -20,13 +20,13 @@ if [ "$HOST" = rog ]; then
   DIR='~/build/algoty-web'
   $SSH $TARGET "mkdir -p $DIR"
   rsync -az --delete --exclude node_modules --exclude '.next*' --exclude '.env*' -e "$SSH" ./ "$TARGET:$DIR/"
-  $SSH $TARGET "cd $DIR && export PATH=\$HOME/.nvm/versions/node/v20.19.1/bin:\$PATH && npm ci --no-audit --no-fund >/dev/null && npx next build 2>&1 | tail -30"
+  $SSH $TARGET "cd $DIR && rm -rf .next && export PATH=\$HOME/.nvm/versions/node/v20.19.1/bin:\$PATH && npm ci --no-audit --no-fund >/dev/null && npx next build > .next-build.log 2>&1; build_status=\$?; tail -30 .next-build.log 2>/dev/null || true; rm -f .next-build.log; test \$build_status -eq 0 && test -s .next/BUILD_ID"
   rsync -az -e "$SSH" "$TARGET:$DIR/.next/" ./.next-prod/
 else
   # The mc container has no rsync: stream tar archives over ssh instead. node_modules stays on the NUC between builds.
   SSH="ssh -o BatchMode=yes -o ConnectTimeout=10 -o ServerAliveInterval=20"
   tar czf - --exclude=node_modules --exclude='.next*' --exclude='.env*' . | $SSH mc 'D=/host/root/build/algoty-web; mkdir -p $D && find $D -mindepth 1 -maxdepth 1 ! -name node_modules -exec rm -rf {} + && tar xzf - -C $D'
-  nuc 'cd /root/build/algoty-web && docker run --rm -v /root/build/algoty-web:/app -w /app -e NEXT_TELEMETRY_DISABLED=1 node:20-alpine sh -c "npm ci --no-audit --no-fund >/dev/null 2>&1 && npx next build 2>&1 | tail -30" && test -s .next/BUILD_ID'
+  nuc 'cd /root/build/algoty-web && rm -rf .next && docker run --rm -v /root/build/algoty-web:/app -w /app -e NEXT_TELEMETRY_DISABLED=1 node:20-alpine sh -c "npm ci --no-audit --no-fund >/dev/null 2>&1 && npx next build > .next-build.log 2>&1"; build_status=$?; tail -30 .next-build.log 2>/dev/null || true; rm -f .next-build.log; test $build_status -eq 0 && test -s .next/BUILD_ID'
   mkdir -p .next-prod
   $SSH mc 'tar czf - -C /host/root/build/algoty-web/.next .' | tar xzf - -C .next-prod
 fi
