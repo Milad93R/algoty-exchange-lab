@@ -489,6 +489,25 @@
   color: var(--ink);
   border-color: var(--ink);
 }
+.size-mode {
+  display: flex;
+  border: 1px solid var(--line);
+  padding: 2px;
+  margin-bottom: 12px;
+}
+.size-mode button {
+  flex: 1;
+  padding: 7px 4px;
+  color: var(--muted);
+  font-size: 9px;
+}
+.size-mode button.active {
+  color: var(--ink);
+  background: #e9ebe2;
+}
+.size-entry > label {
+  margin-bottom: 16px;
+}
 .product form label,
 .plan-fields label {
   display: block;

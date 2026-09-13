@@ -1,9 +1,12 @@
 {
   "checks": [
     "OCO ticket exposes limit, stop trigger and stop-limit prices",
+    "USDT amount input converts to an executable base-asset quantity",
+    "market order entered as a USDT amount reaches FILLED",
     "accepted OCO appears as one row with two linked legs",
     "canceling parent OCO changes its status to CANCELED",
-    "390px OCO ticket has no horizontal overflow"
+    "390px OCO ticket has no horizontal overflow",
+    "amount sizing mode persists after reload"
   ],
   "errors": []
 }

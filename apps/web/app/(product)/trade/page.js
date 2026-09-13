@@ -40,6 +40,8 @@ export default function Trade() {
       "",
     ),
     [quantity, setQuantity] = useViewState("trade.quantity", "0.001"),
+    [savedSizeMode, setSizeMode] = useViewState("trade.size-mode", "QUANTITY"),
+    [amount, setAmount] = useViewState("trade.amount", "100"),
     [savedTab, setTab] = useViewState("trade.portfolio-tab", "orders"),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
@@ -50,6 +52,9 @@ export default function Trade() {
   const kind = ["MARKET", "LIMIT", "OCO"].includes(savedKind)
     ? savedKind
     : "MARKET";
+  const sizeMode = ["QUANTITY", "AMOUNT"].includes(savedSizeMode)
+    ? savedSizeMode
+    : "QUANTITY";
   const logarithmicScale = savedChartScale !== "linear";
   const tab = portfolioTabs.includes(savedTab) ? savedTab : "orders";
   const queryClient = useQueryClient();
@@ -77,7 +82,17 @@ export default function Trade() {
   }
   useEffect(() => {
     key.current = null;
-  }, [symbol, side, kind, price, stopPrice, stopLimitPrice, quantity]);
+  }, [
+    symbol,
+    side,
+    kind,
+    price,
+    stopPrice,
+    stopLimitPrice,
+    quantity,
+    amount,
+    sizeMode,
+  ]);
   const asset = symbol.replace("USDT", ""),
     best =
       (side === "BUY" ? market?.asks?.[0]?.price : market?.bids?.[0]?.price) ||
@@ -89,7 +104,14 @@ export default function Trade() {
       : kind === "OCO" && side === "BUY"
         ? Math.max(Number(price || 0), Number(stopLimitPrice || 0))
         : Number(price || 0);
-  const estimate = Number(quantity || 0) * estimatePrice;
+  const quantityUnits =
+    sizeMode === "AMOUNT"
+      ? estimatePrice > 0
+        ? Math.floor((Number(amount || 0) / estimatePrice) * 1e6)
+        : 0
+      : Math.round(Number(quantity || 0) * 1e6);
+  const orderQuantity = quantityUnits / 1e6;
+  const estimate = orderQuantity * estimatePrice;
   const available = portfolio?.balances?.find(
     (b) => b.asset === (side === "BUY" ? "USDT" : asset),
   );
@@ -102,7 +124,7 @@ export default function Trade() {
         symbol,
         side,
         kind,
-        quantity: Math.round(Number(quantity) * 1e6),
+        quantity: quantityUnits,
         price: Math.round(Number(price || 0) * 100),
         ...(kind === "OCO"
           ? {
@@ -378,19 +400,60 @@ export default function Trade() {
                 </label>
               </>
             )}
-            <label>
-              Quantity <span>{asset}</span>
-              <input
-                aria-label="Order quantity"
-                type="number"
-                min="0.000001"
-                step="0.000001"
-                max="1000"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                required
-              />
-            </label>
+            <div className="size-entry">
+              <div
+                className="size-mode"
+                role="group"
+                aria-label="Order size input"
+              >
+                <button
+                  type="button"
+                  className={sizeMode === "QUANTITY" ? "active" : ""}
+                  aria-pressed={sizeMode === "QUANTITY"}
+                  onClick={() => setSizeMode("QUANTITY")}
+                >
+                  Quantity
+                </button>
+                <button
+                  type="button"
+                  className={sizeMode === "AMOUNT" ? "active" : ""}
+                  aria-pressed={sizeMode === "AMOUNT"}
+                  onClick={() => setSizeMode("AMOUNT")}
+                >
+                  Amount
+                </button>
+              </div>
+              {sizeMode === "QUANTITY" ? (
+                <label>
+                  Order quantity <span>{asset}</span>
+                  <input
+                    aria-label="Order quantity"
+                    type="number"
+                    min="0.000001"
+                    step="0.000001"
+                    max="1000"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    required
+                  />
+                </label>
+              ) : (
+                <label>
+                  {side === "BUY" ? "Purchase amount" : "Order value"}{" "}
+                  <span>USDT</span>
+                  <input
+                    aria-label="Order amount"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    max="10000000"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    required
+                  />
+                </label>
+              )}
+            </div>
             <div className="available">
               Available{" "}
               <b>
@@ -405,6 +468,14 @@ export default function Trade() {
               </b>
             </div>
             <div className="ticket-estimate">
+              {sizeMode === "AMOUNT" && (
+                <span>
+                  Converted quantity
+                  <b>
+                    {fmt(orderQuantity, 6)} {asset}
+                  </b>
+                </span>
+              )}
               <span>
                 {kind === "OCO" && side === "BUY"
                   ? "Maximum reserved value"
@@ -417,7 +488,9 @@ export default function Trade() {
             </div>
             <button
               className={"primary place " + (side === "SELL" ? "sell" : "")}
-              disabled={busy || !user || !market || market.stale}
+              disabled={
+                busy || !user || !market || market.stale || quantityUnits < 1
+              }
             >
               {busy
                 ? "Placing…"
