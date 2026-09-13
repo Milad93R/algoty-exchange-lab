@@ -10,10 +10,10 @@ import {
   useModal,
   Shell,
   Notice,
-  Candles,
   fmt,
   usd,
 } from "../../components/product/common";
+import Candles from "../../components/product/MarketChart";
 import {
   dataKeys,
   useCandles,
@@ -199,13 +199,17 @@ export default function Trade() {
                 </button>
               ))}
             </div>
-            <span>Spot · Paper execution</span>
+            <span>Drag · scroll · pinch</span>
           </div>
           <Candles
+            key={`${symbol}:${tf}`}
             rows={chartRows}
             timeframe={tf}
             sourceTimeframe={chartHistory.length > 0 ? tf : "1m"}
-            error={candlesQuery.error?.message}
+            error={candlesQuery.error?.message || candlesQuery.historyError}
+            onLoadOlder={candlesQuery.loadOlder}
+            loadingOlder={candlesQuery.isFetchingOlder}
+            hasMore={candlesQuery.hasMore}
           />
         </section>
         <section className="depth-panel">

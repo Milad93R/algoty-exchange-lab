@@ -5,9 +5,9 @@ import {
   useMarket,
   useViewState,
   Shell,
-  Candles,
   fmt,
 } from "../../components/product/common";
+import Candles from "../../components/product/MarketChart";
 function Market({ symbol, watched, toggle }) {
   const m = useMarket(symbol);
   return (
