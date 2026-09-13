@@ -52,14 +52,18 @@ type Market struct {
 	Connected bool     `json:"connected"`
 }
 type Execute struct {
-	ID       string `json:"id"`
-	Account  string `json:"account"`
-	Symbol   string `json:"symbol"`
-	Side     string `json:"side"`
-	Price    int64  `json:"price"`
-	Quantity int64  `json:"quantity"`
-	After    int64  `json:"after"`
-	Resting  bool   `json:"resting"`
+	ID             string `json:"id"`
+	Account        string `json:"account"`
+	Symbol         string `json:"symbol"`
+	Side           string `json:"side"`
+	Kind           string `json:"kind,omitempty"`
+	Price          int64  `json:"price"`
+	StopPrice      int64  `json:"stopPrice,omitempty"`
+	StopLimitPrice int64  `json:"stopLimitPrice,omitempty"`
+	ActiveLeg      string `json:"activeLeg,omitempty"`
+	Quantity       int64  `json:"quantity"`
+	After          int64  `json:"after"`
+	Resting        bool   `json:"resting"`
 }
 type Fill struct {
 	Price    int64  `json:"price"`
@@ -69,6 +73,7 @@ type Fill struct {
 type Receipt struct {
 	Request  Execute `json:"request"`
 	Fills    []Fill  `json:"fills"`
+	Leg      string  `json:"leg,omitempty"`
 	At       int64   `json:"at"`
 	Sequence int64   `json:"sequence"`
 	Model    string  `json:"model"`
@@ -162,7 +167,9 @@ func (f *Feed) executeMode(q Execute, cancel bool) (Receipt, error) {
 	if !ok || (!cancel && (!m.Connected || time.Now().UnixMilli()-m.Updated > 4000)) {
 		return Receipt{}, errors.New("market feed is stale")
 	}
-	if len(q.ID) < 8 || q.Account == "" || q.Quantity < 1 || q.Quantity > 1000000000 || q.Price < 1 || q.Price > 100000000 || (q.Side != "BUY" && q.Side != "SELL") {
+	isOCO := q.Kind == "OCO"
+	validOCO := !isOCO || (q.StopPrice >= 1 && q.StopPrice <= 100000000 && q.StopLimitPrice >= 1 && q.StopLimitPrice <= 100000000 && (q.ActiveLeg == "" || q.ActiveLeg == "LIMIT" || q.ActiveLeg == "STOP_LIMIT") && ((q.Side == "SELL" && q.StopLimitPrice <= q.StopPrice && q.StopPrice < q.Price) || (q.Side == "BUY" && q.Price < q.StopPrice && q.StopPrice <= q.StopLimitPrice)))
+	if len(q.ID) < 8 || q.Account == "" || q.Quantity < 1 || q.Quantity > 1000000000 || q.Price < 1 || q.Price > 100000000 || (q.Side != "BUY" && q.Side != "SELL") || (q.Kind != "" && !isOCO) || !validOCO {
 		return Receipt{}, errors.New("invalid execution")
 	}
 	r := Receipt{Request: q, Fills: []Fill{}, At: time.Now().UnixMilli(), Sequence: m.Sequence, Model: "depth-sweep; resting trade-through with observed-volume cap"}
@@ -179,27 +186,64 @@ func (f *Feed) executeMode(q Execute, cancel bool) (Receipt, error) {
 		remaining -= n
 		r.Fills = append(r.Fills, Fill{price, n, key})
 	}
-	if cancel {
-		// A durable empty receipt resolves an unexecuted command even during feed loss.
-	} else if q.Resting {
-		for _, t := range m.Trades {
-			if t.Time <= q.After {
-				continue
-			}
-			if (q.Side == "BUY" && t.BuyerMaker && t.Price < q.Price) || (q.Side == "SELL" && !t.BuyerMaker && t.Price > q.Price) {
-				consume(q.Price, t.Quantity, fmt.Sprintf("%s|%s|t%d", q.Account, q.Symbol, t.ID))
-			}
+	tradeThrough := func(price int64, t Tick) {
+		if (q.Side == "BUY" && t.BuyerMaker && t.Price < price) || (q.Side == "SELL" && !t.BuyerMaker && t.Price > price) {
+			consume(price, t.Quantity, fmt.Sprintf("%s|%s|t%d", q.Account, q.Symbol, t.ID))
 		}
-	} else {
+	}
+	depthSweep := func(price int64) {
 		levels := m.Asks
 		if q.Side == "SELL" {
 			levels = m.Bids
 		}
 		for _, l := range levels {
-			if (q.Side == "BUY" && l.Price <= q.Price) || (q.Side == "SELL" && l.Price >= q.Price) {
+			if (q.Side == "BUY" && l.Price <= price) || (q.Side == "SELL" && l.Price >= price) {
 				consume(l.Price, l.Quantity, fmt.Sprintf("%s|%s|%d|%s|%d", q.Account, q.Symbol, m.Sequence, q.Side, l.Price))
 			}
 		}
+	}
+	if cancel {
+		// A durable empty receipt resolves an unexecuted command even during feed loss.
+	} else if isOCO {
+		r.Model = "linked OCO; first limit fill or stop trigger cancels the other leg"
+		r.Leg = q.ActiveLeg
+		for _, t := range m.Trades {
+			if t.Time <= q.After {
+				continue
+			}
+			if r.Leg == "LIMIT" {
+				tradeThrough(q.Price, t)
+				continue
+			}
+			if r.Leg == "STOP_LIMIT" {
+				tradeThrough(q.StopLimitPrice, t)
+				continue
+			}
+			stopTriggered := (q.Side == "SELL" && t.Price <= q.StopPrice) || (q.Side == "BUY" && t.Price >= q.StopPrice)
+			if stopTriggered {
+				r.Leg = "STOP_LIMIT"
+				break
+			}
+			before := remaining
+			tradeThrough(q.Price, t)
+			if remaining < before {
+				r.Leg = "LIMIT"
+			}
+		}
+		// A newly triggered stop-limit enters against the current observed book.
+		// If it is outside the book it rests and later requires a strict trade-through.
+		if q.ActiveLeg == "" && r.Leg == "STOP_LIMIT" {
+			depthSweep(q.StopLimitPrice)
+		}
+	} else if q.Resting {
+		for _, t := range m.Trades {
+			if t.Time <= q.After {
+				continue
+			}
+			tradeThrough(q.Price, t)
+		}
+	} else {
+		depthSweep(q.Price)
 	}
 	f.state.Results[q.ID] = r
 	if e := f.save(); e != nil {

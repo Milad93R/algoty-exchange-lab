@@ -1,0 +1,9 @@
+{
+  "checks": [
+    "OCO ticket exposes limit, stop trigger and stop-limit prices",
+    "accepted OCO appears as one row with two linked legs",
+    "canceling parent OCO changes its status to CANCELED",
+    "390px OCO ticket has no horizontal overflow"
+  ],
+  "errors": []
+}

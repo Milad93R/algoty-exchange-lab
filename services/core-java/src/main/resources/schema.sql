@@ -24,3 +24,8 @@ CREATE INDEX IF NOT EXISTS v2_events_mission ON v2_events(mission_id,id);
 CREATE INDEX IF NOT EXISTS v2_equity_mission ON v2_equity(mission_id,id);
 
 ALTER TABLE v2_missions ADD COLUMN IF NOT EXISTS flow_state TEXT NOT NULL DEFAULT '{}';
+ALTER TABLE v2_orders ADD COLUMN IF NOT EXISTS stop_price BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE v2_orders ADD COLUMN IF NOT EXISTS stop_limit_price BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE v2_orders ADD COLUMN IF NOT EXISTS reserve_price BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE v2_orders ADD COLUMN IF NOT EXISTS active_leg TEXT NOT NULL DEFAULT '';
+UPDATE v2_orders SET reserve_price=price WHERE reserve_price=0;

@@ -137,6 +137,45 @@ func TestConcurrentLiquidity(t *testing.T) {
 		t.Fatal(total)
 	}
 }
+
+func TestOCOLimitFillCancelsLaterStop(t *testing.T) {
+	f := fixture("")
+	now := time.Now().UnixMilli()
+	f.markets["BTCUSDT"].Trades = []Tick{
+		{1, now, 11001, 3, false},
+		{2, now + 1, 9000, 10, true},
+	}
+	q := Execute{ID: "oco-limit-1", Account: "account-a", Symbol: "BTCUSDT", Side: "SELL", Kind: "OCO", Price: 11000, StopPrice: 9500, StopLimitPrice: 9400, Quantity: 5, After: now - 1, Resting: true}
+	r, e := f.execute(q)
+	if e != nil || r.Leg != "LIMIT" || qty(r) != 3 || r.Fills[0].Price != q.Price {
+		t.Fatal(r, e)
+	}
+	// Once one leg has filled, a later stop cannot switch the OCO to its other leg.
+	q.ID = "oco-limit-2"
+	q.ActiveLeg = "LIMIT"
+	q.After = now
+	r, e = f.execute(q)
+	if e != nil || r.Leg != "LIMIT" || qty(r) != 0 {
+		t.Fatal("OCO limit leg was not sticky", r, e)
+	}
+}
+
+func TestOCOStopTriggerCancelsLimitAndSweepsBook(t *testing.T) {
+	f := fixture("")
+	now := time.Now().UnixMilli()
+	f.markets["BTCUSDT"].Trades = []Tick{{1, now, 9499, 2, true}, {2, now + 1, 11001, 10, false}}
+	q := Execute{ID: "oco-stop-1", Account: "account-a", Symbol: "BTCUSDT", Side: "SELL", Kind: "OCO", Price: 11000, StopPrice: 9500, StopLimitPrice: 9400, Quantity: 5, After: now - 1, Resting: true}
+	r, e := f.execute(q)
+	if e != nil || r.Leg != "STOP_LIMIT" || qty(r) != 5 || r.Fills[0].Price != 10000 {
+		t.Fatal(r, e)
+	}
+	q.ID = "oco-invalid"
+	q.StopLimitPrice = 9600
+	if _, e = f.execute(q); e == nil {
+		t.Fatal("invalid OCO geometry accepted")
+	}
+}
+
 func TestBinanceCaseSensitiveCandleFields(t *testing.T) {
 	raw := []byte(`{"k":{"t":60000,"T":119999,"o":"100","c":"101","h":"102","l":"99","L":123456,"v":"12.5","V":"3","x":true}}`)
 	c, e := decodeCandle(raw)

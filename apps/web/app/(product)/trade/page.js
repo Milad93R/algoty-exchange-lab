@@ -1,5 +1,5 @@
 "use client";
-import Link from 'next/link';
+import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -34,6 +34,11 @@ export default function Trade() {
     [savedKind, setKind] = useViewState("trade.kind", "MARKET"),
     [savedChartScale, setChartScale] = useViewState("trade.chart-scale", "log"),
     [price, setPrice] = useViewState("trade.price", ""),
+    [stopPrice, setStopPrice] = useViewState("trade.stop-price", ""),
+    [stopLimitPrice, setStopLimitPrice] = useViewState(
+      "trade.stop-limit-price",
+      "",
+    ),
     [quantity, setQuantity] = useViewState("trade.quantity", "0.001"),
     [savedTab, setTab] = useViewState("trade.portfolio-tab", "orders"),
     [notice, setNotice] = useState(""),
@@ -42,7 +47,9 @@ export default function Trade() {
   const symbol = MARKET_SYMBOLS.includes(savedSymbol) ? savedSymbol : "BTCUSDT";
   const tf = CHART_TIMEFRAMES.includes(savedTf) ? savedTf : "1m";
   const side = ["BUY", "SELL"].includes(savedSide) ? savedSide : "BUY";
-  const kind = ["MARKET", "LIMIT"].includes(savedKind) ? savedKind : "MARKET";
+  const kind = ["MARKET", "LIMIT", "OCO"].includes(savedKind)
+    ? savedKind
+    : "MARKET";
   const logarithmicScale = savedChartScale !== "linear";
   const tab = portfolioTabs.includes(savedTab) ? savedTab : "orders";
   const queryClient = useQueryClient();
@@ -70,15 +77,19 @@ export default function Trade() {
   }
   useEffect(() => {
     key.current = null;
-  }, [symbol, side, kind, price, quantity]);
+  }, [symbol, side, kind, price, stopPrice, stopLimitPrice, quantity]);
   const asset = symbol.replace("USDT", ""),
     best =
       (side === "BUY" ? market?.asks?.[0]?.price : market?.bids?.[0]?.price) ||
       0;
   const last = market?.candles?.at(-1)?.close || best / 100;
-  const estimate =
-    Number(quantity || 0) *
-    (kind === "MARKET" ? best / 100 : Number(price || 0));
+  const estimatePrice =
+    kind === "MARKET"
+      ? best / 100
+      : kind === "OCO" && side === "BUY"
+        ? Math.max(Number(price || 0), Number(stopLimitPrice || 0))
+        : Number(price || 0);
+  const estimate = Number(quantity || 0) * estimatePrice;
   const available = portfolio?.balances?.find(
     (b) => b.asset === (side === "BUY" ? "USDT" : asset),
   );
@@ -93,10 +104,20 @@ export default function Trade() {
         kind,
         quantity: Math.round(Number(quantity) * 1e6),
         price: Math.round(Number(price || 0) * 100),
+        ...(kind === "OCO"
+          ? {
+              stopPrice: Math.round(Number(stopPrice || 0) * 100),
+              stopLimitPrice: Math.round(Number(stopLimitPrice || 0) * 100),
+            }
+          : {}),
         key: key.current,
       });
       key.current = null;
-      setNotice("Order accepted. Follow its fills below.");
+      setNotice(
+        kind === "OCO"
+          ? "OCO accepted. Its limit and stop-limit legs are linked."
+          : "Order accepted. Follow its fills below.",
+      );
       await queryClient.invalidateQueries({
         queryKey: dataKeys.portfolio(user.id),
       });
@@ -146,6 +167,8 @@ export default function Trade() {
             onChange={(e) => {
               setSymbol(e.target.value);
               setPrice("");
+              setStopPrice("");
+              setStopLimitPrice("");
             }}
           >
             {MARKET_SYMBOLS.map((s) => (
@@ -290,19 +313,19 @@ export default function Trade() {
               ))}
             </div>
             <div className="ticket-kind">
-              {["MARKET", "LIMIT"].map((k) => (
+              {["MARKET", "LIMIT", "OCO"].map((k) => (
                 <button
                   type="button"
                   key={k}
                   className={kind === k ? "active" : ""}
                   onClick={() => setKind(k)}
                 >
-                  {k === "MARKET" ? "Market" : "Limit"}
+                  {k === "MARKET" ? "Market" : k === "LIMIT" ? "Limit" : "OCO"}
                 </button>
               ))}
             </div>
             <label>
-              Price <span>USDT</span>
+              {kind === "OCO" ? "Limit leg price" : "Price"} <span>USDT</span>
               <input
                 aria-label="Limit price"
                 type="number"
@@ -315,10 +338,46 @@ export default function Trade() {
                     ? "Best available price"
                     : "Enter limit price"
                 }
-                required={kind === "LIMIT"}
+                required={kind !== "MARKET"}
                 onChange={(e) => setPrice(e.target.value)}
               />
             </label>
+            {kind === "OCO" && (
+              <>
+                <label>
+                  Stop trigger <span>USDT</span>
+                  <input
+                    aria-label="OCO stop trigger"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={stopPrice}
+                    placeholder={
+                      side === "SELL" ? "Below market" : "Above market"
+                    }
+                    required
+                    onChange={(e) => setStopPrice(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Stop-limit price <span>USDT</span>
+                  <input
+                    aria-label="OCO stop-limit price"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={stopLimitPrice}
+                    placeholder={
+                      side === "SELL"
+                        ? "At or below trigger"
+                        : "At or above trigger"
+                    }
+                    required
+                    onChange={(e) => setStopLimitPrice(e.target.value)}
+                  />
+                </label>
+              </>
+            )}
             <label>
               Quantity <span>{asset}</span>
               <input
@@ -347,7 +406,10 @@ export default function Trade() {
             </div>
             <div className="ticket-estimate">
               <span>
-                Estimated value<b>${fmt(estimate)}</b>
+                {kind === "OCO" && side === "BUY"
+                  ? "Maximum reserved value"
+                  : "Estimated value"}
+                <b>${fmt(estimate)}</b>
               </span>
               <span>
                 Fee · 0.1%<b>${fmt(estimate * 0.001, 4)}</b>
@@ -357,13 +419,19 @@ export default function Trade() {
               className={"primary place " + (side === "SELL" ? "sell" : "")}
               disabled={busy || !user || !market || market.stale}
             >
-              {busy ? "Placing…" : `Place ${side.toLowerCase()} order`}{" "}
+              {busy
+                ? "Placing…"
+                : `Place ${side.toLowerCase()}${kind === "OCO" ? " OCO" : " order"}`}{" "}
               <span>↗</span>
             </button>
             <p className="micro-note">
               {kind === "MARKET"
                 ? "1% price protection. Unfilled remainder is canceled."
-                : "Resting orders need an observed trade through your price. Touching the price alone does not guarantee a fill."}
+                : kind === "LIMIT"
+                  ? "Resting orders need an observed trade through your price. Touching the price alone does not guarantee a fill."
+                  : side === "SELL"
+                    ? "The limit leg must be above market; the stop is below it. The first limit fill or stop trigger cancels the other leg."
+                    : "The limit leg must be below market; the stop is above it. The first limit fill or stop trigger cancels the other leg."}
             </p>
           </form>
         </section>
@@ -406,7 +474,7 @@ export default function Trade() {
                       "Market / time",
                       "Side",
                       "Type",
-                      "Price",
+                      "Price / legs",
                       "Quantity",
                       "Filled",
                       "Status",
@@ -441,15 +509,45 @@ export default function Trade() {
                     <td className={o.side === "BUY" ? "up" : "down"}>
                       {o.side}
                     </td>
-                    <td>{o.kind}</td>
+                    <td>
+                      {o.kind}
+                      {o.kind === "OCO" && (
+                        <small>
+                          {o.active_leg === "STOP_LIMIT"
+                            ? "Stop leg active"
+                            : o.active_leg === "LIMIT"
+                              ? "Limit leg active"
+                              : "2 linked legs"}
+                        </small>
+                      )}
+                    </td>
                     <td>
                       {o.kind === "MARKET" ? "Market" : fmt(o.price / 100)}
+                      {o.kind === "OCO" && (
+                        <small>
+                          Stop {fmt(o.stop_price / 100)} →{" "}
+                          {fmt(o.stop_limit_price / 100)}
+                        </small>
+                      )}
                     </td>
                     <td>{fmt(o.quantity / 1e6, 6)}</td>
                     <td>{fmt((o.quantity - o.remaining) / 1e6, 6)}</td>
                     <td>
-                      <span className={"order-status " + o.status}>
-                        {o.status}
+                      <span
+                        className={
+                          "order-status " +
+                          (o.kind === "OCO" &&
+                          o.active_leg === "STOP_LIMIT" &&
+                          ["OPEN", "PARTIAL"].includes(o.status)
+                            ? "TRIGGERED"
+                            : o.status)
+                        }
+                      >
+                        {o.kind === "OCO" &&
+                        o.active_leg === "STOP_LIMIT" &&
+                        ["OPEN", "PARTIAL"].includes(o.status)
+                          ? "TRIGGERED"
+                          : o.status}
                       </span>
                     </td>
                     <td>

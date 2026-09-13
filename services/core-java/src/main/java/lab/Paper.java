@@ -132,10 +132,13 @@ public class Paper {
               key = str(b, "key");
           if (!SYMBOLS.contains(symbol)
               || !List.of("BUY", "SELL").contains(side)
-              || !List.of("MARKET", "LIMIT").contains(kind)
+              || !List.of("MARKET", "LIMIT", "OCO").contains(kind)
               || !key.matches("[a-zA-Z0-9-]{8,100}"))
             throw new IllegalArgumentException("Invalid order fields");
-          long quantity = integer(b, "quantity"), requestedPrice = integer(b, "price");
+          long quantity = integer(b, "quantity"),
+              requestedPrice = integer(b, "price"),
+              stopPrice = kind.equals("OCO") ? integer(b, "stopPrice") : 0,
+              stopLimitPrice = kind.equals("OCO") ? integer(b, "stopLimitPrice") : 0;
           if (quantity < 1 || quantity > 1000000000L)
             throw new IllegalArgumentException(
                 "Quantity must be positive with at most six decimal places");
@@ -148,7 +151,10 @@ public class Paper {
                 || !o.get("side").equals(side)
                 || !o.get("kind").equals(kind)
                 || n(o, "quantity") != quantity
-                || (kind.equals("LIMIT") && n(o, "price") != requestedPrice))
+                || (!kind.equals("MARKET") && n(o, "price") != requestedPrice)
+                || (kind.equals("OCO")
+                    && (n(o, "stop_price") != stopPrice
+                        || n(o, "stop_limit_price") != stopLimitPrice)))
               throw new IllegalArgumentException("Request key reused with different order");
             return o;
           }
@@ -172,7 +178,33 @@ public class Paper {
             price = side.equals("BUY") ? (best * 101 + 99) / 100 : best * 99 / 100;
           }
           if (price < 1 || price > 100000000) throw new IllegalArgumentException("Invalid price");
-          long amount = side.equals("BUY") ? reserve(price, quantity) : quantity;
+          if (kind.equals("OCO")) {
+            if (stopPrice < 1
+                || stopPrice > 100000000
+                || stopLimitPrice < 1
+                || stopLimitPrice > 100000000)
+              throw new IllegalArgumentException("Invalid OCO prices");
+            JsonNode levels = m.path(side.equals("BUY") ? "asks" : "bids");
+            if (levels.isEmpty()) throw new IllegalArgumentException("No market liquidity");
+            long reference = levels.get(0).path("price").asLong();
+            if (side.equals("SELL")
+                && !(price > reference
+                    && stopPrice < reference
+                    && stopLimitPrice <= stopPrice))
+              throw new IllegalArgumentException(
+                  "Sell OCO requires the limit above market, stop below market, and stop-limit at or below the stop");
+            if (side.equals("BUY")
+                && !(price < reference
+                    && stopPrice > reference
+                    && stopLimitPrice >= stopPrice))
+              throw new IllegalArgumentException(
+                  "Buy OCO requires the limit below market, stop above market, and stop-limit at or above the stop");
+          }
+          long reservePrice =
+              kind.equals("OCO") && side.equals("BUY")
+                  ? Math.max(price, stopLimitPrice)
+                  : price;
+          long amount = side.equals("BUY") ? reserve(reservePrice, quantity) : quantity;
           String asset = side.equals("BUY") ? "USDT" : base(symbol);
           var balance =
               e.db.queryForMap(
@@ -187,14 +219,17 @@ public class Paper {
           String id = auth.id();
           e.db.update(
               "INSERT INTO"
-                  + " v2_orders(id,account_id,symbol,side,kind,price,quantity,remaining,status,after_ms,request_key)"
-                  + " VALUES (?,?,?,?,?,?,?,?,'OPEN',?,?)",
+                  + " v2_orders(id,account_id,symbol,side,kind,price,stop_price,stop_limit_price,reserve_price,quantity,remaining,status,after_ms,request_key)"
+                  + " VALUES (?,?,?,?,?,?,?,?,?,?,?,'OPEN',?,?)",
               id,
               a,
               symbol,
               side,
               kind,
               price,
+              stopPrice,
+              stopLimitPrice,
+              reservePrice,
               quantity,
               quantity,
               System.currentTimeMillis(),
@@ -239,24 +274,21 @@ public class Paper {
               side = str(o, "side"),
               symbol = str(o, "symbol"),
               key = str(o, "receipt_key");
-          Map<String, Object> req =
-              Map.of(
-                  "id",
-                  key,
-                  "account",
-                  a,
-                  "symbol",
-                  symbol,
-                  "side",
-                  side,
-                  "price",
-                  n(o, "price"),
-                  "quantity",
-                  n(o, "remaining"),
-                  "after",
-                  n(o, "after_ms"),
-                  "resting",
-                  o.get("resting"));
+          Map<String, Object> req = new LinkedHashMap<>();
+          req.put("id", key);
+          req.put("account", a);
+          req.put("symbol", symbol);
+          req.put("side", side);
+          req.put("price", n(o, "price"));
+          req.put("quantity", n(o, "remaining"));
+          req.put("after", n(o, "after_ms"));
+          req.put("resting", o.get("resting"));
+          if (str(o, "kind").equals("OCO")) {
+            req.put("kind", "OCO");
+            req.put("stopPrice", n(o, "stop_price"));
+            req.put("stopLimitPrice", n(o, "stop_limit_price"));
+            req.put("activeLeg", str(o, "active_leg"));
+          }
           JsonNode r;
           try {
             var response =
@@ -275,6 +307,21 @@ public class Paper {
             throw new IllegalArgumentException("Execution waiting for a fresh market connection");
           }
           long remain = n(o, "remaining");
+          String kind = str(o, "kind"), currentLeg = str(o, "active_leg");
+          String receiptLeg = r.path("leg").asText("");
+          if (kind.equals("OCO")
+              && !List.of("", "LIMIT", "STOP_LIMIT").contains(receiptLeg))
+            throw new IllegalStateException("Invalid OCO execution receipt");
+          if (kind.equals("OCO")
+              && !currentLeg.isBlank()
+              && !receiptLeg.isBlank()
+              && !currentLeg.equals(receiptLeg))
+            throw new IllegalStateException("OCO leg changed after activation");
+          String activeLeg = receiptLeg.isBlank() ? currentLeg : receiptLeg;
+          long executionLimit =
+              kind.equals("OCO") && activeLeg.equals("STOP_LIMIT")
+                  ? n(o, "stop_limit_price")
+                  : n(o, "price");
           int index = 0;
           for (JsonNode f : r.path("fills")) {
             long price = f.path("price").asLong(),
@@ -284,12 +331,14 @@ public class Paper {
             if (q < 1
                 || q > remain
                 || price < 1
-                || (side.equals("BUY") && price > n(o, "price"))
-                || (side.equals("SELL") && price < n(o, "price")))
+                || (side.equals("BUY") && price > executionLimit)
+                || (side.equals("SELL") && price < executionLimit)
+                || (kind.equals("OCO") && activeLeg.isBlank()))
               throw new IllegalStateException("Invalid execution receipt");
             String tid = key + "-" + index++;
             if (side.equals("BUY")) {
-              long released = reserve(n(o, "price"), remain) - reserve(n(o, "price"), remain - q);
+              long reservePrice = n(o, "reserve_price");
+              long released = reserve(reservePrice, remain) - reserve(reservePrice, remain - q);
               e.db.update(
                   "UPDATE v2_balances SET total=total-?,reserved=reserved-? WHERE account_id=? AND"
                       + " asset='USDT'",
@@ -338,16 +387,19 @@ public class Paper {
                         "observedAt",
                         r.path("at").asLong(),
                         "model",
-                        r.path("model").asText())));
+                        r.path("model").asText(),
+                        "ocoLeg",
+                        activeLeg)));
             remain -= q;
           }
           String status = remain == 0 ? "FILLED" : remain < n(o, "quantity") ? "PARTIAL" : "OPEN";
           e.db.update(
               "UPDATE v2_orders SET"
-                  + " remaining=?,status=?,resting=true,after_ms=?,attempt=attempt+1,receipt_key=NULL"
+                  + " remaining=?,status=?,active_leg=?,resting=true,after_ms=?,attempt=attempt+1,receipt_key=NULL"
                   + " WHERE id=?",
               remain,
               status,
+              activeLeg,
               r.path("at").asLong(),
               id);
           if (str(o, "kind").equals("MARKET") && remain > 0) cancelLocked(id, "CANCELED");
@@ -390,7 +442,8 @@ public class Paper {
       throw new IllegalArgumentException(
           "Execution is pending. Retry cancellation after reconnection.");
     long remain = n(o, "remaining"),
-        amount = str(o, "side").equals("BUY") ? reserve(n(o, "price"), remain) : remain;
+        amount =
+            str(o, "side").equals("BUY") ? reserve(n(o, "reserve_price"), remain) : remain;
     String asset = str(o, "side").equals("BUY") ? "USDT" : base(str(o, "symbol"));
     e.db.update(
         "UPDATE v2_balances SET reserved=reserved-? WHERE account_id=? AND asset=?",

@@ -5,7 +5,7 @@ Approved scope: a usable live-data paper exchange with personalized AI missions,
 ## 1. Data and execution
 - [x] Test public REST and WebSocket market feeds directly from yusam; document provider and endpoints.
 - [x] Go live feed for BTC/USDT, ETH/USDT, SOL/USDT; depth, trades, candles, timestamps, reconnection and stale status.
-- [x] Market and limit orders with precision, reservations, fees, depth-aware partial execution and cancellation.
+- [x] Market, limit and linked OCO orders with precision, single reservations, fees, depth-aware partial execution and cancellation.
 - [x] Conservative resting-limit model, capacity consumption, idempotent execution and durable settlement.
 - [x] Reject stale market execution; label source, fee and simulation assumptions.
 
