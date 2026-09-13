@@ -5,6 +5,7 @@ import Brand from "../Brand";
 import { useEffect, useState, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { dataKeys } from "./server-state";
+import { CHART_TIMEFRAME_DETAILS } from "./market-config";
 export { api } from "./client-api";
 export { useUser } from "./UserSession";
 export { useViewState } from "./AppProviders";
@@ -257,36 +258,73 @@ export function Curve({ series = [], labels = [], markers = [], benchmark = null
     </div>
   );
 }
-export function barsFor(rows = [], tf = "1m") {
-  if (tf === "1m") return rows;
+export function barsFor(rows = [], tf = "1m", sourceTf = "1m") {
+  const target = CHART_TIMEFRAME_DETAILS[tf]?.durationMs;
+  const source = CHART_TIMEFRAME_DETAILS[sourceTf]?.durationMs;
+  if (!target || !source || target <= source) return rows;
   const groups = new Map();
   for (const r of rows) {
-    const k = Math.floor(r.time / 300000);
+    const k = Math.floor(r.time / target);
     const a = groups.get(k) || [];
     a.push(r);
     groups.set(k, a);
   }
   return [...groups.entries()].map(([k, a]) => ({
-    time: k * 300000,
+    time: k * target,
     open: a[0].open,
     close: a.at(-1).close,
     high: Math.max(...a.map((r) => r.high)),
     low: Math.min(...a.map((r) => r.low)),
     volume: a.reduce((s, r) => s + r.volume, 0),
+    closed: a.every((r) => r.closed),
   }));
 }
-export function Candles({ rows = [], timeframe = "1m", level }) {
+
+function chartTime(value, span, detail = false) {
+  const date = new Date(value);
+  if (span >= 48 * 60 * 60 * 1000) {
+    return detail
+      ? date.toLocaleString([], {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : date.toLocaleDateString([], { month: "short", day: "numeric" });
+  }
+  if (span >= 12 * 60 * 60 * 1000) {
+    return date.toLocaleString([], {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      ...(detail ? { minute: "2-digit" } : {}),
+    });
+  }
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export function Candles({
+  rows = [],
+  timeframe = "1m",
+  sourceTimeframe = "1m",
+  level,
+  error,
+}) {
   const [hover, setHover] = useState(null),
     [count, setCount] = useState(70),
     [ma, setMa] = useState(false);
-  const data = barsFor(rows, timeframe).slice(-count);
+  const data = barsFor(rows, timeframe, sourceTimeframe).slice(-count);
   if (!data.length)
     return (
       <div className="chart-skeleton">
-        Connecting to live candles
+        {error || `Loading ${timeframe} candles`}
         <span />
       </div>
     );
+  const span = data.at(-1).time - data[0].time;
   const high = Math.max(...data.map((r) => r.high)),
     low = Math.min(...data.map((r) => r.low)),
     pad = (high - low) * 0.12 || 1,
@@ -300,10 +338,7 @@ export function Candles({ rows = [], timeframe = "1m", level }) {
     <div className="candle-wrap">
       <div className="chart-tools">
         <span>
-          {new Date(item.time).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}{" "}
+          {chartTime(item.time, span, true)}{" "}
           <b>O</b> {fmt(item.open)} <b>H</b> {fmt(item.high)} <b>L</b>{" "}
           {fmt(item.low)} <b>C</b> {fmt(item.close)}
         </span>
@@ -315,6 +350,8 @@ export function Candles({ rows = [], timeframe = "1m", level }) {
         viewBox="0 0 780 380"
         role="img"
         aria-label="Live candlestick chart"
+        data-timeframe={timeframe}
+        data-candles={data.length}
         onPointerLeave={() => setHover(null)}
         onPointerMove={(e) => {
           const r = e.currentTarget.getBoundingClientRect();
@@ -365,10 +402,7 @@ export function Candles({ rows = [], timeframe = "1m", level }) {
               />
               {i % Math.max(1, Math.floor(data.length / 6)) === 0 && (
                 <text className="axis-text" x={i * w} y="375" stroke="none">
-                  {new Date(r.time).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {chartTime(r.time, span)}
                 </text>
               )}
             </g>

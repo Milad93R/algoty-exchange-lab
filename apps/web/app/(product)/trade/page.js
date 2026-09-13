@@ -16,10 +16,14 @@ import {
 } from "../../components/product/common";
 import {
   dataKeys,
+  useCandles,
   usePortfolio,
 } from "../../components/product/server-state";
+import {
+  CHART_TIMEFRAMES,
+  MARKET_SYMBOLS,
+} from "../../components/product/market-config";
 
-const symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT"];
 const portfolioTabs = ["orders", "fills", "positions", "balances", "ledger"];
 
 export default function Trade() {
@@ -34,8 +38,8 @@ export default function Trade() {
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [detail, setDetail] = useState(null);
-  const symbol = symbols.includes(savedSymbol) ? savedSymbol : "BTCUSDT";
-  const tf = ["1m", "5m"].includes(savedTf) ? savedTf : "1m";
+  const symbol = MARKET_SYMBOLS.includes(savedSymbol) ? savedSymbol : "BTCUSDT";
+  const tf = CHART_TIMEFRAMES.includes(savedTf) ? savedTf : "1m";
   const side = ["BUY", "SELL"].includes(savedSide) ? savedSide : "BUY";
   const kind = ["MARKET", "LIMIT"].includes(savedKind) ? savedKind : "MARKET";
   const tab = portfolioTabs.includes(savedTab) ? savedTab : "orders";
@@ -45,9 +49,17 @@ export default function Trade() {
   const key = useRef(null);
   useModal(!!detail, () => setDetail(null));
   const market = useMarket(symbol);
+  const candlesQuery = useCandles(symbol, tf);
+  const chartHistory = candlesQuery.data?.candles || [];
+  const chartRows =
+    chartHistory.length > 0
+      ? chartHistory
+      : tf === "1m"
+        ? market?.candles || []
+        : [];
   useEffect(() => {
     const q = new URLSearchParams(location.search).get("symbol");
-    if (symbols.includes(q)) setSymbol(q);
+    if (MARKET_SYMBOLS.includes(q)) setSymbol(q);
   }, []);
   async function refresh() {
     const result = await portfolioQuery.refetch();
@@ -134,7 +146,7 @@ export default function Trade() {
               setPrice("");
             }}
           >
-            {symbols.map((s) => (
+            {MARKET_SYMBOLS.map((s) => (
               <option key={s} value={s}>
                 {s.replace("USDT", " / USDT")}
               </option>
@@ -170,11 +182,17 @@ export default function Trade() {
         <section className="chart-panel">
           <div className="panel-heading">
             <span>PRICE ACTION</span>
-            <div>
-              {["1m", "5m"].map((t) => (
+            <div
+              className="chart-timeframes"
+              role="group"
+              aria-label="Chart timeframe"
+            >
+              {CHART_TIMEFRAMES.map((t) => (
                 <button
+                  type="button"
                   key={t}
                   className={tf === t ? "active" : ""}
+                  aria-pressed={tf === t}
                   onClick={() => setTf(t)}
                 >
                   {t}
@@ -183,7 +201,12 @@ export default function Trade() {
             </div>
             <span>Spot · Paper execution</span>
           </div>
-          <Candles rows={market?.candles} timeframe={tf} />
+          <Candles
+            rows={chartRows}
+            timeframe={tf}
+            sourceTimeframe={chartHistory.length > 0 ? tf : "1m"}
+            error={candlesQuery.error?.message}
+          />
         </section>
         <section className="depth-panel">
           <div className="panel-heading">

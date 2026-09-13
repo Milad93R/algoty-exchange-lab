@@ -8,7 +8,7 @@ A live-data paper exchange with a Go execution engine, Java financial core and A
 
 ## What it does
 
-- Streams real Binance spot depth, trades and candles, verified accessible from the deployment server.
+- Streams real Binance spot depth and trades, and charts 500 Binance candles independently cached for 1m, 5m, 15m, 30m, 1h, 4h and 1d.
 - Executes market/limit paper orders against observed liquidity, including partial fills, reservations, fees and cancellation.
 - Keeps accounts, positions, realized/unrealized P&L and a balanced double-entry ledger in PostgreSQL.
 - Converts an AI brief into an editable draft. Activation, risk limits and account authorization are enforced outside the model.

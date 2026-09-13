@@ -1,6 +1,7 @@
 "use client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./client-api";
+import { CHART_TIMEFRAME_DETAILS } from "./market-config";
 
 export const dataKeys = {
   user: ["session-user"],
@@ -10,6 +11,7 @@ export const dataKeys = {
   comparison: (userId, groupId) => ["comparison", userId, groupId],
   accountSessions: (userId) => ["account-sessions", userId],
   market: (symbol) => ["live-market", symbol],
+  candles: (symbol, timeframe) => ["market-candles", symbol, timeframe],
   replay: (missionId, planKey, slippageBps) => [
     "mission-replay",
     missionId,
@@ -80,5 +82,25 @@ export function useAccountSessions(userId) {
     queryFn: () => api("account/sessions"),
     enabled: !!userId,
     staleTime: 60_000,
+  });
+}
+
+export function useCandles(symbol, timeframe) {
+  const refresh = CHART_TIMEFRAME_DETAILS[timeframe]?.refreshMs;
+  return useQuery({
+    queryKey: dataKeys.candles(symbol, timeframe),
+    queryFn: async () => {
+      const query = new URLSearchParams({ symbol, timeframe });
+      const response = await fetch(`/api/candles?${query}`, {
+        headers: { Accept: "application/json" },
+      });
+      const data = await response.json();
+      if (!response.ok) throw Error(data.error || "Unable to load chart history");
+      return data;
+    },
+    enabled: !!symbol && !!refresh,
+    staleTime: refresh,
+    refetchInterval: refresh,
+    refetchIntervalInBackground: false,
   });
 }
