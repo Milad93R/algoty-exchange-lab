@@ -32,6 +32,7 @@ export default function Trade() {
     [savedTf, setTf] = useViewState("trade.timeframe", "1m"),
     [savedSide, setSide] = useViewState("trade.side", "BUY"),
     [savedKind, setKind] = useViewState("trade.kind", "MARKET"),
+    [savedChartScale, setChartScale] = useViewState("trade.chart-scale", "log"),
     [price, setPrice] = useViewState("trade.price", ""),
     [quantity, setQuantity] = useViewState("trade.quantity", "0.001"),
     [savedTab, setTab] = useViewState("trade.portfolio-tab", "orders"),
@@ -42,6 +43,7 @@ export default function Trade() {
   const tf = CHART_TIMEFRAMES.includes(savedTf) ? savedTf : "1m";
   const side = ["BUY", "SELL"].includes(savedSide) ? savedSide : "BUY";
   const kind = ["MARKET", "LIMIT"].includes(savedKind) ? savedKind : "MARKET";
+  const logarithmicScale = savedChartScale !== "linear";
   const tab = portfolioTabs.includes(savedTab) ? savedTab : "orders";
   const queryClient = useQueryClient();
   const portfolioQuery = usePortfolio(user?.id);
@@ -210,6 +212,10 @@ export default function Trade() {
             onLoadOlder={candlesQuery.loadOlder}
             loadingOlder={candlesQuery.isFetchingOlder}
             hasMore={candlesQuery.hasMore}
+            logarithmic={logarithmicScale}
+            onLogarithmicChange={(enabled) =>
+              setChartScale(enabled ? "log" : "linear")
+            }
           />
         </section>
         <section className="depth-panel">

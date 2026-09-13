@@ -8,6 +8,7 @@ import {
   HistogramSeries,
   LineSeries,
   LineStyle,
+  PriceScaleMode,
   createChart,
 } from "lightweight-charts";
 import { CHART_TIMEFRAME_DETAILS } from "./market-config";
@@ -109,6 +110,8 @@ export default function MarketChart({
   onLoadOlder,
   loadingOlder = false,
   hasMore = false,
+  logarithmic,
+  onLogarithmicChange,
 }) {
   const hostRef = useRef(null);
   const chartRef = useRef(null);
@@ -122,7 +125,9 @@ export default function MarketChart({
   const hasMoreRef = useRef(hasMore);
   const [hovered, setHovered] = useState(null);
   const [showAverage, setShowAverage] = useState(false);
+  const [localLogarithmic, setLocalLogarithmic] = useState(true);
   const [awayFromLatest, setAwayFromLatest] = useState(false);
+  const logarithmicScale = logarithmic ?? localLogarithmic;
 
   const data = useMemo(
     () => barsFor(rows, timeframe, sourceTimeframe),
@@ -169,6 +174,9 @@ export default function MarketChart({
       },
       rightPriceScale: {
         borderColor: "#d6d9d0",
+        mode: logarithmicScale
+          ? PriceScaleMode.Logarithmic
+          : PriceScaleMode.Normal,
         scaleMargins: { top: 0.08, bottom: 0.22 },
       },
       timeScale: {
@@ -267,6 +275,14 @@ export default function MarketChart({
   }, [timeframe]);
 
   useEffect(() => {
+    chartRef.current?.priceScale("right").applyOptions({
+      mode: logarithmicScale
+        ? PriceScaleMode.Logarithmic
+        : PriceScaleMode.Normal,
+    });
+  }, [logarithmicScale]);
+
+  useEffect(() => {
     const chart = chartRef.current;
     const candles = candleSeriesRef.current;
     const volume = volumeSeriesRef.current;
@@ -329,6 +345,19 @@ export default function MarketChart({
         <div className="chart-actions">
           <button
             type="button"
+            className={logarithmicScale ? "on" : ""}
+            aria-label="Logarithmic price scale"
+            aria-pressed={logarithmicScale}
+            onClick={() =>
+              onLogarithmicChange
+                ? onLogarithmicChange(!logarithmicScale)
+                : setLocalLogarithmic((value) => !value)
+            }
+          >
+            LOG
+          </button>
+          <button
+            type="button"
             className={showAverage ? "on" : ""}
             aria-pressed={showAverage}
             onClick={() => setShowAverage((value) => !value)}
@@ -351,6 +380,7 @@ export default function MarketChart({
         aria-label="Interactive live candlestick chart"
         data-testid="market-chart"
         data-timeframe={timeframe}
+        data-price-scale={logarithmicScale ? "logarithmic" : "linear"}
         data-candles={data.length}
         data-loaded-candles={data.length}
       >

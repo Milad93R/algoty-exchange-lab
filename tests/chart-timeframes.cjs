@@ -154,6 +154,17 @@ const timeframes = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"];
     const averageButton = page.getByRole("button", { name: "SMA 20", exact: true });
     await averageButton.click();
     assert.equal(await averageButton.getAttribute("aria-pressed"), "true");
+    const logButton = page.getByRole("button", {
+      name: "Logarithmic price scale",
+      exact: true,
+    });
+    assert.equal(await logButton.getAttribute("aria-pressed"), "true");
+    assert.equal(await chart.getAttribute("data-price-scale"), "logarithmic");
+    await logButton.click();
+    assert.equal(await logButton.getAttribute("aria-pressed"), "false");
+    assert.equal(await chart.getAttribute("data-price-scale"), "linear");
+    await logButton.click();
+    assert.equal(await logButton.getAttribute("aria-pressed"), "true");
     const latestButton = page.getByRole("button", { name: "Latest", exact: true });
     assert((await latestButton.getAttribute("class")).includes("is-away"));
     await latestButton.click();
@@ -168,6 +179,12 @@ const timeframes = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"];
           ?.textContent?.trim() === "1w",
       null,
       { timeout: 30_000 },
+    );
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Logarithmic price scale", exact: true })
+        .getAttribute("aria-pressed"),
+      "true",
     );
     await page.screenshot({ path: "/tmp/algoty-interactive-chart-desktop.png", fullPage: true });
 
